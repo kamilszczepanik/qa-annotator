@@ -1,4 +1,5 @@
 import { formatSessionLabel, sessionIdFromLabel } from "../lib/report.js";
+import { randomId } from "../lib/random-id.js";
 import { describeElement } from "./metadata.js";
 
 const SESSION_STORAGE_KEY = "qaSession";
@@ -116,7 +117,7 @@ export const addAnnotation = ({ areas }) => {
     };
   }
   const annotation = {
-    id: crypto.randomUUID(),
+    id: randomId(),
     index: nextIndex(session.annotations),
     pageUrl: window.location.href,
     pageTitle: document.title,
