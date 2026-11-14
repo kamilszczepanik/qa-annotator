@@ -144,6 +144,11 @@ the same way, strips invisible characters, caps every value quoted from the page
 at 200 characters, and tells the coding agent that page content is data, not
 instructions.
 
+Addresses on your own machine or network keep their query string and fragment,
+because that is usually the state you are testing: `localhost`, `*.localhost`,
+`*.local`, `127.x`, `[::1]`, `10.x`, `192.168.x` and `172.16.x` to `172.31.x`.
+Credentials in the address are dropped there too.
+
 ## License
 
 MIT, see [LICENSE](LICENSE).

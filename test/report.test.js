@@ -32,7 +32,7 @@ test("an element annotation renders every bullet in order", () => {
       "",
       "## 1. Save button is too small to tap on mobile",
       "",
-      "- **Page:** `http://localhost:3000/dashboard/reviews`",
+      "- **Page:** `http://localhost:3000/dashboard/reviews?filter=pending`",
       "- **Title:** `Reviews · Example Shop`",
       "- **Viewport:** 390 × 844 (dpr 3)",
       "- **Screenshot:** ./01-save-button-too-small.png",
@@ -140,7 +140,9 @@ test("a hostile page title cannot forge headings or bullets", () => {
     ),
   );
   assert.ok(
-    document.includes("- **Page:** `http://localhost/a`\n"),
+    document.includes(
+      "- **Page:** `http://localhost/a##%203.%20Also%20forged`\n",
+    ),
   );
 });
 
@@ -183,7 +185,7 @@ test("an issue with one area renders exactly what a single pick rendered", () =>
       "",
       "## 1. Save button is too small to tap on mobile",
       "",
-      "- **Page:** `http://localhost:3000/dashboard/reviews`",
+      "- **Page:** `http://localhost:3000/dashboard/reviews?filter=pending`",
       "- **Title:** `Reviews · Example Shop`",
       "- **Viewport:** 390 × 844 (dpr 3)",
       "- **Screenshot:** ./01-save-button-too-small.png",
@@ -192,5 +194,14 @@ test("an issue with one area renders exactly what a single pick rendered", () =>
       "- **Rect:** x 24, y 612, w 88, h 32",
       "",
     ].join("\n"),
+  );
+});
+
+test("a public page is reported without its query string or fragment", () => {
+  const document = reportFor([
+    annotation({ pageUrl: "https://shop.example.com/account?token=abc#reset" }),
+  ]);
+  assert.ok(
+    document.includes("- **Page:** `https://shop.example.com/account`\n"),
   );
 });
