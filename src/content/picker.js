@@ -32,13 +32,13 @@ const hideHighlight = () => {
 
 const elementUnderCursor = (clientX, clientY) => {
   const host = getOverlayHost();
-  setOverlayPointerEvents("none");
-  const element = document.elementFromPoint(clientX, clientY);
-  setOverlayPointerEvents("auto");
-  if (!element || element === host || element === document.documentElement) {
-    return null;
-  }
-  return element;
+  return (
+    document
+      .elementsFromPoint(clientX, clientY)
+      .find(
+        (element) => element !== host && element !== document.documentElement,
+      ) ?? null
+  );
 };
 
 const rectBetween = (origin, event) =>
