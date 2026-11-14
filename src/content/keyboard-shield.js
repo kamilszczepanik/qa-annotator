@@ -7,11 +7,18 @@
   const isEditable = (node) =>
     Boolean(node?.isContentEditable || EDITABLE_TAGS.has(node?.tagName));
 
+  const isOverlayHost = (node) => node?.id === OVERLAY_HOST_ID;
+
+  const focusedInsideClosedHost = (host) =>
+    globalThis.chrome?.dom?.openOrClosedShadowRoot?.(host)?.activeElement ??
+    null;
+
   const comesFromOverlayField = (event) => {
     const path = event.composedPath();
-    return (
-      isEditable(path[0]) && path.some((node) => node?.id === OVERLAY_HOST_ID)
-    );
+    if (isOverlayHost(path[0])) {
+      return isEditable(focusedInsideClosedHost(path[0]));
+    }
+    return isEditable(path[0]) && path.some(isOverlayHost);
   };
 
   const isOverlayShortcut = (event) =>

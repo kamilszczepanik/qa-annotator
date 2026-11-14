@@ -10,13 +10,19 @@ const SHIELD_SOURCE = await readFile(
   "utf8",
 );
 
-const loadShield = () => {
+const loadShield = ({ closedRootFocus = null } = {}) => {
   const listeners = [];
   const window = {
     addEventListener: (type, listener, capture) =>
       listeners.push({ type, listener, capture }),
   };
-  vm.runInNewContext(SHIELD_SOURCE, { window });
+  const chrome = {
+    dom: {
+      openOrClosedShadowRoot: (host) =>
+        host.id === OVERLAY_HOST_ID ? { activeElement: closedRootFocus } : null,
+    },
+  };
+  vm.runInNewContext(SHIELD_SOURCE, { window, chrome });
   return listeners;
 };
 
@@ -98,4 +104,19 @@ test("the shield recognises the host id the overlay actually uses", () => {
     false,
   );
   assert.equal(dispatch({ listeners, path: overlayPath }), true);
+});
+
+test("a letter typed in the closed overlay root never reaches the page", () => {
+  const listeners = loadShield({ closedRootFocus: textarea });
+  assert.equal(dispatch({ listeners, path: [overlayHost, pageBody] }), true);
+  assert.equal(
+    dispatch({ listeners, key: "Enter", path: [overlayHost, pageBody] }),
+    false,
+  );
+});
+
+test("a key on a closed overlay button is left to the page", () => {
+  const button = { tagName: "BUTTON", isContentEditable: false };
+  const listeners = loadShield({ closedRootFocus: button });
+  assert.equal(dispatch({ listeners, path: [overlayHost, pageBody] }), false);
 });
