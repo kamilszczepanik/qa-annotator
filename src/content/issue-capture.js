@@ -1,113 +1,151 @@
-import { offscreenAreaNumbers } from "../lib/geometry.js";
-import { areaCountLabel } from "../lib/text.js";
-import { closeCommentBox, showCommentBox } from "./comment-box.js";
+import { randomId } from "../lib/random-id.js";
+import { clearMarks, showMarks } from "./area-marks.js";
 import {
   bankArea,
+  bankedAreaViews,
+  bankedViewportRects,
   draftAreaCount,
+  draftAreaOf,
   endDraft,
-  hasWarnedOffscreen,
-  markOffscreenWarned,
   resolveDraftAreas,
+  viewportRectOf,
 } from "./draft-issue.js";
-import { setOverlayStatus } from "./overlay.js";
-import {
-  renderSessionList,
-  reportListFailure,
-  setListError,
-  STORAGE_FAILURE_MESSAGE,
-} from "./panel.js";
-import { captureAnnotationScreenshot } from "./session-export.js";
-import { addAnnotation, persistSession } from "./session-store.js";
+import { pushPanelState } from "./panel-link.js";
+import { captureThumbnail } from "./screenshot.js";
+import { commitIssue } from "./issue-commit.js";
+import { setStatus } from "./session-status.js";
 
-const SCREENSHOT_FAILURE_MESSAGE = "Screenshot failed, issue saved without it.";
+const EMPTY_COMMENT_MESSAGE = "Add a comment before saving.";
 export const DRAFT_DISCARDED_MESSAGE = "Draft discarded.";
 
-const bankedStatus = (count) =>
-  `${areaCountLabel(count)} banked. Pick the next one, or ⌘↵ to save.`;
+let current = null;
+let composeError = null;
 
-const offscreenWarning = (numbers) =>
-  numbers.length === 1
-    ? `Area ${numbers[0]} has scrolled out of view. Save again to keep it anyway.`
-    : `Areas ${numbers.join(", ")} have scrolled out of view. Save again to keep them anyway.`;
+export const hasIssueInProgress = () =>
+  current !== null || draftAreaCount() > 0;
 
-const attachScreenshot = async ({ annotation, rects }) => {
-  try {
-    await captureAnnotationScreenshot({ annotation, rects });
-    setListError(null);
-    setOverlayStatus(null);
-  } catch (error) {
-    console.error("QA Annotator: capturing the screenshot failed.", error);
-    setListError(SCREENSHOT_FAILURE_MESSAGE);
-    setOverlayStatus(SCREENSHOT_FAILURE_MESSAGE);
-  }
+const markRects = () => [
+  ...bankedViewportRects(),
+  ...(current ? [viewportRectOf(current.area)] : []),
+];
 
-  try {
-    await persistSession();
-    renderSessionList();
-  } catch (error) {
-    reportListFailure("writing the session to storage failed.", error);
-  }
+const refresh = () => {
+  if (hasIssueInProgress()) showMarks(markRects);
+  else clearMarks();
+  pushPanelState();
 };
 
-const commitIssue = async ({ areas, saved }) => {
-  const rects = areas.map((area) => area.rect);
-  const offscreen = offscreenAreaNumbers({
-    rects,
-    viewport: { width: window.innerWidth, height: window.innerHeight },
-  });
-  if (offscreen.length > 0 && !hasWarnedOffscreen()) {
-    markOffscreenWarned();
-    return { failure: offscreenWarning(offscreen) };
-  }
-  const annotation = saved ?? addAnnotation({ areas });
-  if (saved) saved.areas = areas;
-  renderSessionList();
+const fail = (message) => {
+  composeError = message;
+  pushPanelState();
+  return false;
+};
 
+const attachThumbnail = async (pending) => {
   try {
-    await persistSession();
+    const rect = viewportRectOf(pending.area);
+    pending.thumbnail = rect ? await captureThumbnail(rect) : null;
   } catch (error) {
-    console.error(
-      "QA Annotator: writing the session to storage failed.",
-      error,
-    );
-    endDraft();
-    return { failure: STORAGE_FAILURE_MESSAGE };
+    console.error("QA Annotator: capturing the area thumbnail failed.", error);
   }
-  closeCommentBox();
-  endDraft();
-  await attachScreenshot({ annotation, rects });
-  return { annotation };
+  if (current === pending) pushPanelState();
 };
 
-export const saveBankedDraft = async () => {
-  const { areas, failure } = resolveDraftAreas();
-  if (failure) {
-    setOverlayStatus(failure);
-    return;
-  }
-  const result = await commitIssue({ areas });
-  if (result.failure) setOverlayStatus(result.failure);
-};
-
-export const openCommentBox = (pick) => {
-  let annotation = null;
-  showCommentBox({
+export const startIssue = (pick) => {
+  current = {
+    id: randomId(),
     pick,
-    areaNumber: draftAreaCount() + 1,
-    onAddArea: (comment) => {
-      setOverlayStatus(bankedStatus(bankArea({ pick, comment })));
-      return null;
-    },
-    onCancel: () => {
-      if (endDraft()) setOverlayStatus(DRAFT_DISCARDED_MESSAGE);
-    },
-    onSave: async (comment) => {
-      const { areas, failure } = resolveDraftAreas({ pick, comment });
-      if (failure) return failure;
-      const result = await commitIssue({ areas, saved: annotation });
-      if (result.failure) return result.failure;
-      annotation = result.annotation;
-      return null;
+    area: draftAreaOf({ pick, comment: "" }),
+    thumbnail: null,
+    annotation: current?.annotation ?? null,
+  };
+  composeError = null;
+  refresh();
+  void attachThumbnail(current);
+};
+
+export const saveIssue = async (comment) => {
+  const text = comment.trim();
+  if (!hasIssueInProgress()) return true;
+  if (current && !text) return fail(EMPTY_COMMENT_MESSAGE);
+  const { areas, failure } = resolveDraftAreas(
+    current ? { pick: current.pick, comment: text } : undefined,
+  );
+  if (failure) return fail(failure);
+  const result = await commitIssue({
+    areas,
+    saved: current?.annotation,
+    onCommitted: () => {
+      current = null;
+      composeError = null;
+      endDraft();
+      setStatus(null);
+      refresh();
     },
   });
+  if (!result.failure) return true;
+  if (current && result.annotation) current.annotation = result.annotation;
+  return fail(result.failure);
+};
+
+export const addArea = (comment) => {
+  const text = comment.trim();
+  if (!current) return false;
+  if (!text) return fail(EMPTY_COMMENT_MESSAGE);
+  bankArea({
+    pick: current.pick,
+    comment: text,
+    thumbnail: current.thumbnail,
+  });
+  current = null;
+  composeError = null;
+  setStatus(null);
+  refresh();
+  return true;
+};
+
+export const cancelIssue = () => {
+  if (!hasIssueInProgress()) return false;
+  const hadBanked = draftAreaCount() > 0;
+  current = null;
+  composeError = null;
+  endDraft();
+  setStatus(hadBanked ? DRAFT_DISCARDED_MESSAGE : null);
+  refresh();
+  return true;
+};
+
+export const settleIssue = async (comment) => {
+  if (current && !comment.trim()) {
+    current = null;
+    composeError = null;
+  }
+  return saveIssue(comment);
+};
+
+export const resetIssue = () => {
+  current = null;
+  composeError = null;
+  endDraft();
+  clearMarks();
+};
+
+export const draftSnapshot = () => {
+  if (!hasIssueInProgress()) return null;
+  const areas = bankedAreaViews().map((view, position) => ({
+    number: position + 1,
+    ...view,
+  }));
+  return {
+    areas,
+    current: current
+      ? {
+          id: current.id,
+          number: areas.length + 1,
+          kind: current.pick.kind,
+          thumbnail: current.thumbnail,
+        }
+      : null,
+    error: composeError,
+  };
 };

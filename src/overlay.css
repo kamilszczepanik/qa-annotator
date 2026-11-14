@@ -2,52 +2,26 @@
   all: initial;
 }
 
-.qa-status-bar {
+.qa-notice {
   position: absolute;
-  right: 16px;
-  bottom: 16px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 8px 8px 14px;
-  border-radius: 8px;
-  background: rgba(17, 17, 19, 0.88);
+  top: 16px;
+  left: 50%;
+  z-index: 3;
+  box-sizing: border-box;
+  max-width: min(560px, calc(100vw - 32px));
+  margin: 0;
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: rgba(17, 17, 19, 0.94);
   color: #f4f4f5;
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
     sans-serif;
-  font-size: 13px;
-  line-height: 1;
-  white-space: nowrap;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
-  pointer-events: auto;
-  z-index: 3;
-}
-
-.qa-close-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  padding: 0;
-  border: 0;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.12);
-  color: inherit;
-  font-family: inherit;
   font-size: 15px;
-  line-height: 1;
-  cursor: pointer;
-}
-
-.qa-close-button:hover {
-  background: rgba(255, 255, 255, 0.24);
-}
-
-.qa-close-button:focus-visible {
-  outline: 2px solid #7dd3fc;
-  outline-offset: 2px;
+  line-height: 1.45;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
 .qa-capture-layer {
@@ -89,20 +63,43 @@
   text-overflow: ellipsis;
 }
 
-.qa-status-message {
-  max-width: 40vw;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: #a5b4fc;
+.qa-marks {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
 }
 
-.qa-visually-hidden {
+.qa-mark {
   position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  white-space: nowrap;
+  box-sizing: border-box;
+  border: 3px solid #ff2d55;
+  border-radius: 2px;
+}
+
+.qa-mark--badge-inside .qa-mark-badge {
+  top: -3px;
+  bottom: auto;
+  border-radius: 0 0 4px 0;
+}
+
+.qa-mark-badge {
+  position: absolute;
+  bottom: 100%;
+  left: -3px;
+  min-width: 22px;
+  padding: 3px 7px;
+  border-radius: 4px 4px 0 0;
+  background: #ff2d55;
+  color: #ffffff;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  box-sizing: border-box;
 }
 
 [hidden] {

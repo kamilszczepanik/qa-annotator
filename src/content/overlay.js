@@ -1,25 +1,33 @@
-import { isFinishShortcut, isSaveShortcut } from "../lib/comment-shortcuts.js";
+import {
+  commentShortcutOf,
+  isTypedCharacter,
+} from "../lib/comment-shortcuts.js";
 import { whenTrusted } from "../lib/trusted-event.js";
-import {
-  cancelCommentBox,
-  commitCommentBox,
-  isCommentBoxOpen,
-} from "./comment-box.js";
-import { draftAreaCount, endDraft } from "./draft-issue.js";
-import {
-  DRAFT_DISCARDED_MESSAGE,
-  openCommentBox,
-  saveBankedDraft,
-} from "./issue-capture.js";
 import { startEventFirewall, stopEventFirewall } from "./event-firewall.js";
+import {
+  cancelIssue,
+  hasIssueInProgress,
+  resetIssue,
+  startIssue,
+} from "./issue-capture.js";
 import {
   createOverlayHost,
   OVERLAY_HOST_ID,
   promoteOverlayHost,
   readOverlayCss,
 } from "./overlay-host.js";
-import { closePanel, finishSession, loadSession } from "./panel.js";
+import { panelSnapshot, runPanelCommand } from "./panel-commands.js";
+import {
+  closePanelLink,
+  isPanelLinked,
+  openPanelLink,
+  sendToPanel,
+} from "./panel-link.js";
+import { createNotice, flashTip, setNotice } from "./page-notice.js";
 import { cancelDrag, startPicking, stopPicking } from "./picker.js";
+import { loadSession } from "./session-actions.js";
+import { resetStatus } from "./session-status.js";
+import { isExtensionAlive } from "../lib/extension-context.js";
 import {
   isLoadedExtensionStale,
   ORPHANED_PAGE_MESSAGE,
@@ -27,7 +35,11 @@ import {
   whileExtensionAlive,
 } from "./stale-extension.js";
 
-const STATUS_SILENT_CLASS = "qa-visually-hidden";
+const PANEL_WAIT_MS = 3000;
+const TYPE_IN_PANEL_MESSAGE =
+  "Click the comment box in the side panel, then type.";
+const PANEL_CLOSED_MESSAGE =
+  "The QA Annotator side panel is closed. Click the toolbar icon to open it.";
 
 let isActive = false;
 let shadowRoot = null;
@@ -42,84 +54,52 @@ export const setOverlayPointerEvents = (value) => {
   hostElement?.style.setProperty("pointer-events", value, "important");
 };
 
-export const finishFromKeyboard = async () => {
-  if (await commitCommentBox()) await finishSession();
-};
-
 const showOrphanedPage = () => {
   stopPicking();
-  setOverlayStatus(ORPHANED_PAGE_MESSAGE);
+  resetIssue();
+  setNotice(ORPHANED_PAGE_MESSAGE);
 };
 
 const handleKeyDown = (event) => {
-  if (isActive && !getOverlayHost()?.isConnected) {
-    void toggleQaMode();
+  if (isActive && !hostElement?.isConnected) {
+    void turnOff();
     return;
   }
-  if (isFinishShortcut(event)) {
-    event.preventDefault();
-    event.stopPropagation();
-    void finishFromKeyboard();
+  const shortcut = commentShortcutOf(event);
+  if (!shortcut) {
+    if (isTypedCharacter(event) && hasIssueInProgress()) {
+      flashTip(TYPE_IN_PANEL_MESSAGE);
+    }
     return;
   }
-  if (isSaveShortcut(event) && !isCommentBoxOpen() && draftAreaCount() > 0) {
-    event.preventDefault();
-    event.stopPropagation();
-    void saveBankedDraft();
-    return;
-  }
-  if (event.key !== "Escape") return;
   event.preventDefault();
   event.stopPropagation();
-  if (cancelDrag()) return;
-  if (cancelCommentBox()) return;
-  if (endDraft()) {
-    setOverlayStatus(DRAFT_DISCARDED_MESSAGE);
+  if (shortcut === "cancel") {
+    if (cancelDrag() || cancelIssue()) return;
+    void turnOff();
     return;
   }
-  void toggleQaMode();
+  if (isPanelLinked()) sendToPanel({ type: "shortcut", shortcut });
+  else setNotice(PANEL_CLOSED_MESSAGE);
 };
 
 const handleTrustedKeyDown = whenTrusted(
   whileExtensionAlive({ handler: handleKeyDown, onOrphaned: showOrphanedPage }),
 );
 
-const createStatusBar = () => {
-  const statusBar = document.createElement("div");
-  statusBar.className = "qa-status-bar";
-
-  const label = document.createElement("span");
-  label.textContent = "QA mode on ·";
-
-  const status = document.createElement("span");
-  status.className = `qa-status-message ${STATUS_SILENT_CLASS}`;
-  status.setAttribute("role", "status");
-
-  const issueCount = document.createElement("button");
-  issueCount.type = "button";
-  issueCount.className = "qa-issue-count";
-  issueCount.textContent = "0 issues";
-  issueCount.addEventListener("click", () => {
-    const sessionPanel = shadowRoot.querySelector(".qa-session-panel");
-    if (sessionPanel) sessionPanel.hidden = !sessionPanel.hidden;
-  });
-
-  const closeButton = document.createElement("button");
-  closeButton.type = "button";
-  closeButton.className = "qa-close-button";
-  closeButton.setAttribute("aria-label", "Turn off QA mode");
-  closeButton.textContent = "×";
-  closeButton.addEventListener("click", () => toggleQaMode());
-
-  statusBar.append(label, status, issueCount, closeButton);
-  return statusBar;
+const handlePanelClosed = () => {
+  if (!isExtensionAlive()) {
+    showOrphanedPage();
+    return;
+  }
+  if (isActive) void turnOff();
 };
 
-export const setOverlayStatus = (message) => {
-  const status = shadowRoot?.querySelector(".qa-status-message");
-  if (!status) return;
-  status.textContent = message ?? "";
-  status.classList.toggle(STATUS_SILENT_CLASS, !message);
+const remindWhenPanelStaysClosed = (generation) => {
+  setTimeout(() => {
+    if (generation !== mountGeneration || !isActive) return;
+    if (!isPanelLinked()) setNotice(PANEL_CLOSED_MESSAGE);
+  }, PANEL_WAIT_MS);
 };
 
 const mount = async () => {
@@ -139,52 +119,47 @@ const mount = async () => {
   document.documentElement.append(host);
   promoteOverlayHost({ host, root });
   startEventFirewall(host);
-  root.append(style, createStatusBar());
-  root.querySelector(".qa-issue-count")?.focus();
+  root.append(style, createNotice());
 
   const isStale = await isLoadedExtensionStale();
-  if (generation !== mountGeneration) {
-    host.remove();
-    return;
-  }
+  if (generation !== mountGeneration) return;
   if (isStale) {
-    setOverlayStatus(STALE_EXTENSION_MESSAGE);
+    setNotice(STALE_EXTENSION_MESSAGE);
     return;
   }
 
   await loadSession();
-  if (generation !== mountGeneration) {
-    host.remove();
-    return;
-  }
+  if (generation !== mountGeneration) return;
+  openPanelLink({
+    snapshot: panelSnapshot,
+    onCommand: (command) => void runPanelCommand(command),
+    onLinked: () => setNotice(null),
+    onUnlinked: handlePanelClosed,
+  });
   startPicking({
     onPicked: whileExtensionAlive({
-      handler: openCommentBox,
+      handler: startIssue,
       onOrphaned: showOrphanedPage,
     }),
   });
+  remindWhenPanelStaysClosed(generation);
 };
 
 const unmount = () => {
   mountGeneration += 1;
   window.removeEventListener("keydown", handleTrustedKeyDown, true);
+  closePanelLink();
   stopPicking();
-  endDraft();
-  closePanel();
+  resetIssue();
+  resetStatus();
   stopEventFirewall();
   hostElement?.remove();
   hostElement = null;
   shadowRoot = null;
 };
 
-export const toggleQaMode = async () => {
-  isActive = !isActive;
-
-  if (!isActive) {
-    unmount();
-    return;
-  }
-
+const turnOn = async () => {
+  isActive = true;
   try {
     await mount();
   } catch (error) {
@@ -192,4 +167,23 @@ export const toggleQaMode = async () => {
     isActive = false;
     unmount();
   }
+};
+
+const turnOff = async () => {
+  isActive = false;
+  unmount();
+  if (!isExtensionAlive()) return;
+  try {
+    await chrome.runtime.sendMessage({ type: "QA_MODE_OFF" });
+  } catch (error) {
+    console.error("QA Annotator: closing the side panel failed.", error);
+  }
+};
+
+export const toggleQaMode = async () => {
+  if (!isActive) {
+    await turnOn();
+    return;
+  }
+  if (isPanelLinked() || !hostElement?.isConnected) await turnOff();
 };

@@ -1,5 +1,5 @@
 export const OVERLAY_HOST_ID = "qa-annotator-root";
-const STYLESHEET_PATHS = ["src/overlay.css", "src/panel.css"];
+const STYLESHEET_PATHS = ["src/overlay.css"];
 const HOST_STYLE_DECLARATIONS = [
   ["position", "fixed"],
   ["inset", "0"],

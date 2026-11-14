@@ -1,13 +1,18 @@
+import { cropBox } from "../lib/geometry.js";
 import { getOverlayHost } from "./overlay.js";
 
 let captureQueue = Promise.resolve();
-
 const HIGHLIGHT_COLOR = "#ff2d55";
 const HIGHLIGHT_WIDTH_PX = 3;
 const BADGE_TEXT_COLOR = "#ffffff";
 const BADGE_FONT_PX = 12;
 const BADGE_PADDING_X_PX = 7;
 const BADGE_PADDING_Y_PX = 4;
+const THUMBNAIL_PADDING_PX = 24;
+const THUMBNAIL_MIN_SIZE = { width: 320, height: 180 };
+const THUMBNAIL_ASPECT_RATIO = 16 / 9;
+const THUMBNAIL_MAX_WIDTH_PX = 720;
+const THUMBNAIL_QUALITY = 0.86;
 const BADGE_FONT_STACK =
   '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
@@ -100,11 +105,50 @@ const captureHidden = async (rects) => {
   }
 };
 
-export const captureWithHighlight = (rects) => {
-  const capture = captureQueue.then(
-    () => captureHidden(rects),
-    () => captureHidden(rects),
-  );
+const queued = (task) => {
+  const capture = captureQueue.then(task, task);
   captureQueue = capture.catch(() => {});
   return capture;
 };
+
+export const captureWithHighlight = (rects) =>
+  queued(() => captureHidden(rects));
+
+const cropThumbnail = async ({ frameDataUrl, rect }) => {
+  const bitmap = await createImageBitmap(dataUrlToBlob(frameDataUrl));
+  const crop = cropBox({
+    rect,
+    padding: THUMBNAIL_PADDING_PX,
+    minSize: THUMBNAIL_MIN_SIZE,
+    aspectRatio: THUMBNAIL_ASPECT_RATIO,
+    scale: bitmap.width / window.innerWidth,
+    imageWidth: bitmap.width,
+    imageHeight: bitmap.height,
+  });
+  const outputScale = Math.min(1, THUMBNAIL_MAX_WIDTH_PX / crop.width);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(crop.width * outputScale));
+  canvas.height = Math.max(1, Math.round(crop.height * outputScale));
+  canvas
+    .getContext("2d")
+    .drawImage(
+      bitmap,
+      crop.x,
+      crop.y,
+      crop.width,
+      crop.height,
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    );
+  bitmap.close();
+  return canvas.toDataURL("image/jpeg", THUMBNAIL_QUALITY);
+};
+
+export const captureThumbnail = (rect) =>
+  queued(async () => {
+    await afterTwoFrames();
+    const { dataUrl } = await sendToWorker({ type: "CAPTURE_VISIBLE_TAB" });
+    return cropThumbnail({ frameDataUrl: dataUrl, rect });
+  });

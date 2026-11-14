@@ -61,15 +61,5 @@ export const exportReport = async () => {
     }),
     issueCount: session.annotations.length,
   });
-
-  try {
-    await navigator.clipboard.writeText(prompt);
-    return { clipboardCopied: true };
-  } catch (error) {
-    console.error(
-      "QA Annotator: copying the prompt to the clipboard failed.",
-      error,
-    );
-    return { clipboardCopied: false };
-  }
+  return { prompt };
 };

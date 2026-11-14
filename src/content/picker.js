@@ -1,4 +1,3 @@
-import { isCommentBoxOpen } from "./comment-box.js";
 import { describeElement, roundRect } from "./metadata.js";
 import {
   getOverlayHost,
@@ -69,8 +68,6 @@ const showRegionHighlight = (rect) => {
 };
 
 const handlePointerMove = (event) => {
-  if (isCommentBoxOpen()) return;
-
   if (dragOrigin) {
     if (!isDragging && !hasPassedThreshold(dragOrigin, event)) return;
     isDragging = true;
@@ -89,7 +86,7 @@ const handlePointerMove = (event) => {
 };
 
 const handlePointerDown = (event) => {
-  if (event.button !== 0 || isCommentBoxOpen()) return;
+  if (event.button !== 0) return;
   captureLayer.setPointerCapture(event.pointerId);
   dragOrigin = { x: event.clientX, y: event.clientY };
 };
@@ -113,7 +110,6 @@ const handleClick = (event) => {
     shouldIgnoreNextClick = false;
     return;
   }
-  if (isCommentBoxOpen()) return;
   const element = elementUnderCursor(event.clientX, event.clientY);
   if (!element) return;
   hideHighlight();

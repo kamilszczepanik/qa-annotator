@@ -1,3 +1,5 @@
+import { PANEL_PAGE_PATH } from "./lib/panel-protocol.js";
+
 const RESTRICTED_URL_PREFIXES = [
   "chrome://",
   "chrome-extension://",
@@ -10,6 +12,19 @@ const BOOT_SCRIPT_PATH = "src/content/boot.js";
 
 const isRestrictedUrl = (url) =>
   RESTRICTED_URL_PREFIXES.some((prefix) => (url ?? "").startsWith(prefix));
+
+const logPanelFailure = (error) =>
+  console.error("QA Annotator: opening the side panel failed.", error);
+
+const openSidePanel = (tabId) => {
+  chrome.sidePanel
+    .setOptions({ tabId, path: PANEL_PAGE_PATH, enabled: true })
+    .catch(logPanelFailure);
+  chrome.sidePanel.open({ tabId }).catch(logPanelFailure);
+};
+
+const closeSidePanel = (tabId) =>
+  chrome.sidePanel.setOptions({ tabId, enabled: false });
 
 const toggleOnTab = async (tab) => {
   if (typeof tab?.id !== "number") {
@@ -24,6 +39,7 @@ const toggleOnTab = async (tab) => {
     return;
   }
 
+  openSidePanel(tab.id);
   try {
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
@@ -46,9 +62,10 @@ const toggleOnActiveTab = async () => {
   }
 };
 
-chrome.commands.onCommand.addListener((command) => {
+chrome.commands.onCommand.addListener((command, tab) => {
   if (command !== "toggle-qa-mode") return;
-  void toggleOnActiveTab();
+  if (tab) void toggleOnTab(tab);
+  else void toggleOnActiveTab();
 });
 
 chrome.action.onClicked.addListener((tab) => {
@@ -86,6 +103,10 @@ const isSafeDownloadPath = (filename) =>
   typeof filename === "string" && SESSION_FILE_PATTERN.test(filename);
 
 const messageHandlers = {
+  QA_MODE_OFF: async ({ sender }) => {
+    await closeSidePanel(sender.tab.id);
+    return { ok: true };
+  },
   CAPTURE_VISIBLE_TAB: async ({ sender }) => ({
     ok: true,
     dataUrl: await queueCapture(sender.tab.windowId),

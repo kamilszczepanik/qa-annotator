@@ -1,6 +1,5 @@
 import { formatSessionLabel, sessionIdFromLabel } from "../lib/report.js";
 import { randomId } from "../lib/random-id.js";
-import { describeElement } from "./metadata.js";
 
 const SESSION_STORAGE_KEY = "qaSession";
 
@@ -48,9 +47,6 @@ const usableAnnotations = (stored) =>
     }
     return usable;
   }, []);
-
-export const rectOfPick = (pick) =>
-  pick.kind === "region" ? pick.rect : describeElement(pick.element).rect;
 
 export const getSession = () => session;
 

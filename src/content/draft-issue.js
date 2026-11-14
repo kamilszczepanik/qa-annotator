@@ -18,8 +18,8 @@ const toViewportRect = ({ x, y, width, height }) =>
     height,
   });
 
-const draftAreaOf = ({ pick, comment }) => {
-  const picked = { comment, pageUrl: window.location.href };
+export const draftAreaOf = ({ pick, comment, thumbnail = null }) => {
+  const picked = { comment, thumbnail, pageUrl: window.location.href };
   return pick.kind === "region"
     ? { ...picked, kind: "region", pageRect: toPageRect(pick.rect) }
     : { ...picked, kind: "element", element: pick.element };
@@ -52,10 +52,22 @@ const draftFailure = (draft) => {
   return null;
 };
 
-export const bankArea = ({ pick, comment }) => {
-  bankedAreas.push(draftAreaOf({ pick, comment }));
+export const bankArea = ({ pick, comment, thumbnail }) => {
+  bankedAreas.push(draftAreaOf({ pick, comment, thumbnail }));
   return bankedAreas.length;
 };
+
+export const bankedAreaViews = () =>
+  bankedAreas.map(({ comment, thumbnail }) => ({ comment, thumbnail }));
+
+export const viewportRectOf = (area) => {
+  if (area.kind === "region") return toViewportRect(area.pageRect);
+  return area.element.isConnected
+    ? roundRect(area.element.getBoundingClientRect())
+    : null;
+};
+
+export const bankedViewportRects = () => bankedAreas.map(viewportRectOf);
 
 export const draftAreaCount = () => bankedAreas.length;
 

@@ -3,7 +3,8 @@
   "name": "QA Annotator",
   "version": "0.1.0",
   "description": "Annotate any page during manual QA and export a report for a coding agent.",
-  "permissions": ["activeTab", "scripting", "downloads", "storage"],
+  "minimum_chrome_version": "116",
+  "permissions": ["activeTab", "scripting", "downloads", "storage", "sidePanel"],
   "background": { "service_worker": "src/background.js", "type": "module" },
   "action": { "default_title": "QA Annotator" },
   "commands": {
@@ -21,11 +22,6 @@
         "src/*.css"
       ],
       "matches": ["<all_urls>"]
-    },
-    {
-      "resources": ["src/frame/comment-field.html"],
-      "matches": ["<all_urls>"],
-      "use_dynamic_url": true
     }
   ]
 }

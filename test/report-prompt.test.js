@@ -2,7 +2,6 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { buildHandoffPrompt, slugify } from "../src/lib/report.js";
-import { areaCountLabel } from "../src/lib/text.js";
 
 test("slugify produces a safe filename fragment", () => {
   assert.equal(
@@ -63,9 +62,4 @@ test("several issues name the folder the report was written to", () => {
     ].join("\n"),
   );
   assert.ok(!prompt.includes("—"));
-});
-
-test("an area count reads in the singular and the plural", () => {
-  assert.equal(areaCountLabel(1), "1 area");
-  assert.equal(areaCountLabel(2), "2 areas");
 });

@@ -6,6 +6,7 @@ import {
   isAddAreaShortcut,
   isFinishShortcut,
   isSaveShortcut,
+  isTypedCharacter,
 } from "../src/lib/comment-shortcuts.js";
 
 test("the save chord does not match a chord carrying Option", () => {
@@ -68,4 +69,13 @@ test("typing in the comment field is not a shortcut", () => {
     { key: "Tab" },
     { key: "c", metaKey: true },
   ].forEach((keys) => assert.equal(commentShortcutOf(keys), null));
+});
+
+test("a typed character is a printable key without a command modifier", () => {
+  assert.equal(isTypedCharacter({ key: "t" }), true);
+  assert.equal(isTypedCharacter({ key: "T", shiftKey: true }), true);
+  assert.equal(isTypedCharacter({ key: "Enter" }), false);
+  assert.equal(isTypedCharacter({ key: "c", metaKey: true }), false);
+  assert.equal(isTypedCharacter({ key: "c", ctrlKey: true }), false);
+  assert.equal(isTypedCharacter({ key: "å", altKey: true }), false);
 });

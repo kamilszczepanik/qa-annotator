@@ -22,3 +22,10 @@ export const commentShortcutOf = (event) => {
   if (event.key === "Escape") return "cancel";
   return null;
 };
+
+export const isTypedCharacter = (event) =>
+  typeof event.key === "string" &&
+  event.key.length === 1 &&
+  !event.metaKey &&
+  !event.ctrlKey &&
+  !event.altKey;

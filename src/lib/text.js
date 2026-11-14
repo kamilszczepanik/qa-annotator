@@ -8,9 +8,6 @@ export const truncate = ({ text, maxLength }) =>
 export const issueCountLabel = (count) =>
   count === 1 ? "1 issue" : `${count} issues`;
 
-export const areaCountLabel = (count) =>
-  count === 1 ? "1 area" : `${count} areas`;
-
 const LINE_BREAKING_CHARACTERS = /[\p{Cc}\p{Zl}\p{Zp}]/gu;
 const INVISIBLE_CHARACTERS = /[\p{Cf}\p{Co}\p{Cn}]/gu;
 
