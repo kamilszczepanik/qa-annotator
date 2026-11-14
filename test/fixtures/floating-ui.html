@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Floating UI traps</title>
+    <style>
+      body { color: #14161a; font: 15px/1.5 system-ui, sans-serif; margin: 0 auto; max-width: 46rem; padding: 2rem 1rem 4rem; }
+      section { border: 1px solid #d7dae0; border-radius: 8px; margin-bottom: 1.25rem; padding: .85rem 1.1rem; }
+      h1 { font-size: 1.35rem; } h2 { font-size: 1rem; margin: 0 0 .3rem; } p { margin: .3rem 0; } .pass { font-weight: 700; }
+      .anchor { position: relative; } .controls { align-items: center; display: flex; gap: .5rem; margin: .7rem 0 .3rem; }
+      .state { font-family: ui-monospace, monospace; font-size: .85rem; } .float[hidden] { display: none; }
+      .float { background: #fff; border: 1px solid #b6bbc4; border-radius: 6px; box-shadow: 0 8px 24px rgba(0, 0, 0, .18); left: 0; padding: .7rem; position: absolute; top: 2rem; width: 18rem; z-index: 10; }
+      #dropdown button { display: block; margin-bottom: .2rem; text-align: left; width: 100%; }
+      #modal-input, #composer { display: block; margin: .3rem 0 .5rem; width: 100%; } #composer { height: 4rem; }
+      #event-log { background: #0f1115; border-radius: 8px; color: #e6e8ec; font-size: .8rem; margin: 0; max-height: 18rem; overflow: auto; padding: .9rem; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <h1>Floating UI traps</h1>
+    <p>Five page behaviours that break an overlay. With the extension off every section must still trap. With QA mode on, every pass line below must hold.</p>
+    <section>
+      <h2>1. Focus-trapped modal</h2>
+      <p>A plain div modal wired like a focus scope: a bubble-phase <code>focusin</code> on the document pulls focus back whenever it lands outside, and Escape on document capture closes the modal.</p>
+      <div class="anchor">
+        <div class="controls"><button id="modal-open" type="button">Open modal</button><span class="state" id="modal-state"></span></div>
+        <div class="float" id="modal" hidden><label for="modal-input">Modal input</label><input id="modal-input" type="text" /><button id="modal-close" type="button">Close</button></div>
+      </div>
+      <p class="pass">Pass: picking #modal-input and typing into the comment box leaves refocused at 0 and the modal open, and Escape closes QA mode rather than the modal.</p>
+    </section>
+
+    <section>
+      <h2>2. Dropdown dismissed on outside pointerdown</h2>
+      <p>While the dropdown is open, a bubble-phase <code>pointerdown</code> on the document closes it as soon as the pointer goes down anywhere outside it.</p>
+      <div class="anchor">
+        <div class="controls"><button id="dropdown-toggle" type="button">Toggle dropdown</button><span class="state" id="dropdown-state"></span></div>
+        <div class="float" id="dropdown" hidden><button type="button">Rename</button><button type="button">Duplicate</button><button type="button">Delete</button></div>
+      </div>
+      <p class="pass">Pass: clicking an item inside the dropdown to pick it leaves the dropdown open, and the item is in the screenshot.</p>
+    </section>
+
+    <section>
+      <h2>3. Hover tooltip with a grace area</h2>
+      <p>Two closers, both real: a <code>pointerout</code> handler on the trigger, and a document <code>pointermove</code> that hides the tooltip once the pointer is more than 40px outside the trigger box.</p>
+      <div class="anchor">
+        <div class="controls"><button id="tooltip-trigger" type="button">Hover me</button><span class="state" id="tooltip-state"></span></div>
+        <div class="float" id="tooltip" hidden>Tooltip content that has to survive being annotated.</div>
+      </div>
+      <p class="pass">Pass: moving the pointer over the trigger and then over the tooltip leaves the tooltip visible, and the tooltip is in the screenshot.</p>
+    </section>
+
+    <section>
+      <h2>4. Native modal</h2>
+      <p>A real <code>&lt;dialog&gt;</code> opened with <code>showModal()</code>, so it sits in the browser top layer where z-index alone loses to it.</p>
+      <div class="controls"><button id="native-open" type="button">Open native dialog</button><span class="state" id="native-state"></span></div>
+      <dialog id="native-dialog"><label for="native-input">Native input</label><input id="native-input" type="text" /><form method="dialog"><button type="submit">Close</button></form></dialog>
+      <p class="pass">Pass: with the dialog open the overlay paints above it, but nothing in the overlay can be clicked or focused, because the browser makes everything outside a modal dialog inert. Escape still turns QA mode off. Close the dialog to annotate.</p>
+    </section>
+
+    <section>
+      <h2>5. Type-to-focus composer</h2>
+      <p>A composer that grabs any keystroke landing elsewhere, either from a bubble-phase document listener or from a capture-phase window listener. Capture is the hard case.</p>
+      <div class="controls"><label for="thief-mode">Thief mode</label><select id="thief-mode"><option value="off">off</option><option value="bubble">bubble</option><option value="capture">capture</option></select><span class="state" id="composer-state"></span></div>
+      <textarea id="composer" placeholder="Page composer"></textarea>
+      <p class="pass">Pass: with thief mode at capture, typing a comment leaves every character in the comment box and the composer empty. stolen may climb, the thief just does not get the last word.</p>
+    </section>
+    <h2>Event log</h2>
+    <pre id="event-log"></pre>
+
+    <script>
+      const LOG_LIMIT = 40;
+      const GRACE_PX = 40;
+      const eventLog = document.getElementById("event-log");
+      const loggedLines = [];
+      const log = (line) => {
+        loggedLines.push(line);
+        if (loggedLines.length > LOG_LIMIT) loggedLines.shift();
+        eventLog.textContent = loggedLines.join("\n");
+      };
+      const describe = (node) => (node?.id ? `#${node.id}` : (node?.tagName?.toLowerCase() ?? "document"));
+      const modal = document.getElementById("modal");
+      const modalInput = document.getElementById("modal-input");
+      const modalState = document.getElementById("modal-state");
+      let lastFocusedInModal = null;
+      let refocusCount = 0;
+      const renderModal = () => { modalState.textContent = `${modal.hidden ? "closed" : "open"} · refocused: ${refocusCount}`; };
+      const onModalFocusIn = (event) => {
+        if (modal.contains(event.target)) return;
+        refocusCount += 1;
+        lastFocusedInModal?.focus();
+        renderModal();
+        log(`focusin on ${describe(event.target)} -> refocused into #modal`);
+      };
+      const onModalFocusOut = (event) => { if (modal.contains(event.target)) lastFocusedInModal = event.target; };
+      const onModalEscape = (event) => {
+        if (event.key !== "Escape") return;
+        log("keydown Escape on document capture -> #modal closed");
+        closeModal();
+      };
+      const closeModal = () => {
+        modal.hidden = true;
+        document.removeEventListener("focusin", onModalFocusIn);
+        document.removeEventListener("focusout", onModalFocusOut);
+        document.removeEventListener("keydown", onModalEscape, { capture: true });
+        renderModal();
+      };
+      document.getElementById("modal-open").addEventListener("click", () => {
+        modal.hidden = false;
+        refocusCount = 0;
+        lastFocusedInModal = modalInput;
+        document.addEventListener("focusin", onModalFocusIn);
+        document.addEventListener("focusout", onModalFocusOut);
+        document.addEventListener("keydown", onModalEscape, { capture: true });
+        renderModal();
+        modalInput.focus();
+      });
+      document.getElementById("modal-close").addEventListener("click", closeModal);
+      renderModal();
+      const dropdown = document.getElementById("dropdown");
+      const dropdownState = document.getElementById("dropdown-state");
+      const renderDropdown = () => { dropdownState.textContent = dropdown.hidden ? "closed" : "open"; };
+      const onOutsidePointerDown = (event) => {
+        if (dropdown.contains(event.target)) return;
+        log(`pointerdown on ${describe(event.target)} -> #dropdown dismissed`);
+        closeDropdown();
+      };
+      const closeDropdown = () => {
+        dropdown.hidden = true;
+        document.removeEventListener("pointerdown", onOutsidePointerDown);
+        renderDropdown();
+      };
+      document.getElementById("dropdown-toggle").addEventListener("click", () => {
+        if (!dropdown.hidden) return closeDropdown();
+        dropdown.hidden = false;
+        document.addEventListener("pointerdown", onOutsidePointerDown);
+        renderDropdown();
+      });
+      renderDropdown();
+      const tooltip = document.getElementById("tooltip");
+      const tooltipTrigger = document.getElementById("tooltip-trigger");
+      const tooltipState = document.getElementById("tooltip-state");
+      const renderTooltip = () => { tooltipState.textContent = tooltip.hidden ? "hidden" : "visible"; };
+      const hideTooltip = (reason) => {
+        if (tooltip.hidden) return;
+        tooltip.hidden = true;
+        document.removeEventListener("pointermove", onGraceAreaMove);
+        renderTooltip();
+        log(reason);
+      };
+      const onGraceAreaMove = (event) => {
+        const box = tooltipTrigger.getBoundingClientRect();
+        const distance = Math.max(box.left - event.clientX, event.clientX - box.right, box.top - event.clientY, event.clientY - box.bottom);
+        if (distance <= GRACE_PX) return;
+        hideTooltip(`pointermove ${Math.round(distance)}px outside the trigger -> #tooltip hidden`);
+      };
+      tooltipTrigger.addEventListener("pointerenter", () => {
+        tooltip.hidden = false;
+        document.addEventListener("pointermove", onGraceAreaMove);
+        renderTooltip();
+        log("pointerenter on #tooltip-trigger -> #tooltip visible");
+      });
+      tooltipTrigger.addEventListener("pointerout", (event) => {
+        if (tooltip.contains(event.relatedTarget)) return;
+        hideTooltip("pointerout on #tooltip-trigger -> #tooltip hidden");
+      });
+      renderTooltip();
+      const nativeDialog = document.getElementById("native-dialog");
+      const nativeState = document.getElementById("native-state");
+      const renderNative = () => { nativeState.textContent = nativeDialog.open ? "open" : "closed"; };
+      document.getElementById("native-open").addEventListener("click", () => {
+        nativeDialog.showModal();
+        renderNative();
+        log("showModal() -> #native-dialog open");
+      });
+      nativeDialog.addEventListener("close", () => { renderNative(); log("close -> #native-dialog closed"); });
+      renderNative();
+      const composer = document.getElementById("composer");
+      const composerState = document.getElementById("composer-state");
+      const thiefMode = document.getElementById("thief-mode");
+      let stolenCount = 0;
+      const renderComposer = () => { composerState.textContent = `stolen: ${stolenCount}`; };
+      const stealKeystroke = () => {
+        if (document.activeElement === composer) return;
+        const stolenFrom = describe(document.activeElement);
+        stolenCount += 1;
+        composer.focus();
+        renderComposer();
+        log(`keydown in ${thiefMode.value} mode while ${stolenFrom} had focus -> stolen`);
+      };
+      thiefMode.addEventListener("change", () => {
+        document.removeEventListener("keydown", stealKeystroke);
+        window.removeEventListener("keydown", stealKeystroke, true);
+        if (thiefMode.value === "bubble") document.addEventListener("keydown", stealKeystroke);
+        if (thiefMode.value === "capture") window.addEventListener("keydown", stealKeystroke, true);
+        log(`thief mode -> ${thiefMode.value}`);
+      });
+      renderComposer();
+    </script>
+  </body>
+</html>

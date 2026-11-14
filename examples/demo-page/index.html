@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Checkout · Corner Bakery</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        background: #faf7f2;
+        color: #2b2118;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 40px;
+        background: #fff;
+        border-bottom: 1px solid #eadfd2;
+      }
+      header .logo {
+        font-weight: 700;
+        font-size: 20px;
+      }
+      header nav a {
+        margin-left: 24px;
+        color: #6b5847;
+        text-decoration: none;
+        font-size: 15px;
+      }
+      main {
+        display: grid;
+        grid-template-columns: 1fr 360px;
+        gap: 32px;
+        max-width: 1120px;
+        margin: 32px auto;
+        padding: 0 40px;
+      }
+      h1 {
+        font-size: 28px;
+        margin: 0 0 20px;
+      }
+      .cart-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        background: #fff;
+        border: 1px solid #eadfd2;
+        border-radius: 10px;
+        padding: 16px;
+        margin-bottom: 12px;
+      }
+      .cart-item .thumb {
+        width: 64px;
+        height: 64px;
+        border-radius: 8px;
+        background: #e9c99b;
+        flex-shrink: 0;
+      }
+      .cart-item .name {
+        flex: 1;
+        font-weight: 600;
+      }
+      .cart-item .price {
+        font-weight: 600;
+      }
+      .cart-item:nth-of-type(2) .price {
+        margin-top: 22px;
+      }
+      .qty {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #6b5847;
+      }
+      .qty button {
+        width: 28px;
+        height: 28px;
+        border: 1px solid #d8c8b6;
+        background: #fff;
+        border-radius: 6px;
+      }
+      aside.summary {
+        background: #fff;
+        border: 1px solid #eadfd2;
+        border-radius: 10px;
+        padding: 20px;
+        align-self: start;
+      }
+      .summary h2 {
+        font-size: 18px;
+        margin: 0 0 16px;
+      }
+      .summary .row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        color: #6b5847;
+      }
+      .summary .total {
+        font-weight: 700;
+        color: #2b2118;
+        border-top: 1px solid #eadfd2;
+        padding-top: 12px;
+        margin-top: 12px;
+      }
+      .summary .promo {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #d8c8b6;
+        border-radius: 6px;
+        margin: 12px 0;
+        font-size: 14px;
+      }
+      .summary .btn-checkout {
+        display: block;
+        margin: 8px 0 0 auto;
+        padding: 4px 10px;
+        font-size: 12px;
+        background: #b5562b;
+        color: #fff;
+        border: 0;
+        border-radius: 4px;
+      }
+      .delivery {
+        background: #fff;
+        border: 1px solid #eadfd2;
+        border-radius: 10px;
+        padding: 16px;
+        margin-top: 20px;
+      }
+      .delivery h3 {
+        margin: 0 0 6px;
+        font-size: 16px;
+      }
+      .delivery p {
+        margin: 0;
+        color: #6b5847;
+        font-size: 14px;
+      }
+      .newsletter {
+        margin-top: 20px;
+        padding: 16px;
+        border: 1px dashed #d8c8b6;
+        border-radius: 10px;
+        color: #6b5847;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="logo">Corner Bakery</div>
+      <nav>
+        <a href="#">Menu</a><a href="#">Catering</a><a href="#">Find us</a>
+      </nav>
+    </header>
+    <main>
+      <section class="cart">
+        <h1>Your basket</h1>
+        <div class="cart-item">
+          <div class="thumb"></div>
+          <div class="name">Sourdough loaf</div>
+          <div class="qty">
+            <button type="button">-</button>1<button type="button">+</button>
+          </div>
+          <div class="price">$7.50</div>
+        </div>
+        <div class="cart-item">
+          <div class="thumb"></div>
+          <div class="name">Cinnamon rolls, box of 6</div>
+          <div class="qty">
+            <button type="button">-</button>2<button type="button">+</button>
+          </div>
+          <div class="price">$24.00</div>
+        </div>
+        <div class="cart-item">
+          <div class="thumb"></div>
+          <div class="name">Oat milk flat white</div>
+          <div class="qty">
+            <button type="button">-</button>1<button type="button">+</button>
+          </div>
+          <div class="price">$4.80</div>
+        </div>
+        <div class="newsletter">
+          Get 10% off your next order. Join our newsletter.
+        </div>
+        <div class="delivery">
+          <h3>Delivery</h3>
+          <p>Order before 2 pm for same-day delivery within 5 km.</p>
+        </div>
+      </section>
+      <aside class="summary">
+        <h2>Order summary</h2>
+        <div class="row"><span>Subtotal</span><span>$36.30</span></div>
+        <div class="row"><span>Delivery</span><span>$3.00</span></div>
+        <div class="row total"><span>Total</span><span>$39.30</span></div>
+        <input class="promo" placeholder="Promo code" />
+        <button class="btn-checkout" type="button">Checkout</button>
+      </aside>
+    </main>
+  </body>
+</html>
