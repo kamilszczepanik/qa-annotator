@@ -1,4 +1,5 @@
 export const OVERLAY_HOST_ID = "qa-annotator-root";
+const STYLESHEET_PATHS = ["src/overlay.css", "src/panel.css"];
 const HOST_STYLE_DECLARATIONS = [
   ["position", "fixed"],
   ["inset", "0"],
@@ -46,4 +47,14 @@ export const promoteOverlayHost = ({ host, root }) => {
     );
     host.removeAttribute("popover");
   }
+};
+
+export const readOverlayCss = async () => {
+  const stylesheets = await Promise.all(
+    STYLESHEET_PATHS.map(async (path) => {
+      const response = await fetch(chrome.runtime.getURL(path));
+      return response.text();
+    }),
+  );
+  return stylesheets.join("\n");
 };

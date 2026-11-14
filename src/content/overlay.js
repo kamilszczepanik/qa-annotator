@@ -12,11 +12,21 @@ import {
   saveBankedDraft,
 } from "./issue-capture.js";
 import { startEventFirewall, stopEventFirewall } from "./event-firewall.js";
-import { createOverlayHost, promoteOverlayHost } from "./overlay-host.js";
+import {
+  createOverlayHost,
+  OVERLAY_HOST_ID,
+  promoteOverlayHost,
+  readOverlayCss,
+} from "./overlay-host.js";
 import { closePanel, finishSession, loadSession } from "./panel.js";
 import { cancelDrag, startPicking, stopPicking } from "./picker.js";
+import {
+  isLoadedExtensionStale,
+  ORPHANED_PAGE_MESSAGE,
+  STALE_EXTENSION_MESSAGE,
+  whileExtensionAlive,
+} from "./stale-extension.js";
 
-const STYLESHEET_PATHS = ["src/overlay.css", "src/panel.css"];
 const STATUS_SILENT_CLASS = "qa-visually-hidden";
 
 let isActive = false;
@@ -34,6 +44,11 @@ export const setOverlayPointerEvents = (value) => {
 
 export const finishFromKeyboard = async () => {
   if (await commitCommentBox()) await finishSession();
+};
+
+const showOrphanedPage = () => {
+  stopPicking();
+  setOverlayStatus(ORPHANED_PAGE_MESSAGE);
 };
 
 const handleKeyDown = (event) => {
@@ -65,17 +80,9 @@ const handleKeyDown = (event) => {
   void toggleQaMode();
 };
 
-const handleTrustedKeyDown = whenTrusted(handleKeyDown);
-
-const readOverlayCss = async () => {
-  const stylesheets = await Promise.all(
-    STYLESHEET_PATHS.map(async (path) => {
-      const response = await fetch(chrome.runtime.getURL(path));
-      return response.text();
-    }),
-  );
-  return stylesheets.join("\n");
-};
+const handleTrustedKeyDown = whenTrusted(
+  whileExtensionAlive({ handler: handleKeyDown, onOrphaned: showOrphanedPage }),
+);
 
 const createStatusBar = () => {
   const statusBar = document.createElement("div");
@@ -120,6 +127,7 @@ const mount = async () => {
   const generation = mountGeneration;
   window.addEventListener("keydown", handleTrustedKeyDown, true);
 
+  document.getElementById(OVERLAY_HOST_ID)?.remove();
   const host = createOverlayHost();
   const root = host.attachShadow({ mode: "closed" });
   const style = document.createElement("style");
@@ -134,12 +142,27 @@ const mount = async () => {
   root.append(style, createStatusBar());
   root.querySelector(".qa-issue-count")?.focus();
 
+  const isStale = await isLoadedExtensionStale();
+  if (generation !== mountGeneration) {
+    host.remove();
+    return;
+  }
+  if (isStale) {
+    setOverlayStatus(STALE_EXTENSION_MESSAGE);
+    return;
+  }
+
   await loadSession();
   if (generation !== mountGeneration) {
     host.remove();
     return;
   }
-  startPicking({ onPicked: openCommentBox });
+  startPicking({
+    onPicked: whileExtensionAlive({
+      handler: openCommentBox,
+      onOrphaned: showOrphanedPage,
+    }),
+  });
 };
 
 const unmount = () => {

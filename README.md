@@ -127,6 +127,12 @@ Two reloads, both needed:
 1. The reload icon on the extension card at `chrome://extensions`.
 2. A reload of the page under test.
 
+Chrome reads an unpacked extension's scripts from disk but keeps the manifest
+it loaded, so new code can meet an old manifest. QA mode checks for that and
+says "Reload QA Annotator in chrome://extensions, then this page" instead of
+half working. A page left open across an extension reload says "QA Annotator
+was reloaded. Reload this page."
+
 ### Privacy
 
 Screenshots of a local app can contain real customer data. They stay on this

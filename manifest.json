@@ -14,7 +14,12 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["src/content/*.js", "src/lib/*.js", "src/*.css"],
+      "resources": [
+        "manifest.json",
+        "src/content/*.js",
+        "src/lib/*.js",
+        "src/*.css"
+      ],
       "matches": ["<all_urls>"]
     },
     {
