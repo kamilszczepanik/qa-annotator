@@ -1,3 +1,4 @@
+import { whenTrusted } from "../lib/trusted-event.js";
 import {
   areaCountLabel,
   firstLine,
@@ -31,7 +32,10 @@ const createRow = ({ annotation, position, onDelete }) => {
   deleteButton.type = "button";
   deleteButton.className = "qa-button qa-button--quiet";
   deleteButton.textContent = "Delete";
-  deleteButton.addEventListener("click", () => onDelete(annotation.id));
+  deleteButton.addEventListener(
+    "click",
+    whenTrusted(() => onDelete(annotation.id)),
+  );
 
   row.append(number, text, areaCount, deleteButton);
   return row;
@@ -92,5 +96,5 @@ export const renderSessionPanel = ({
 
   const finishButton = panel.querySelector(".qa-finish-button");
   finishButton.disabled = Boolean(isFinishing);
-  finishButton.onclick = onFinish;
+  finishButton.onclick = whenTrusted(onFinish);
 };

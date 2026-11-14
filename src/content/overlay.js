@@ -1,3 +1,4 @@
+import { whenTrusted } from "../lib/trusted-event.js";
 import {
   cancelCommentBox,
   commitCommentBox,
@@ -67,6 +68,8 @@ const handleKeyDown = (event) => {
   void toggleQaMode();
 };
 
+const handleTrustedKeyDown = whenTrusted(handleKeyDown);
+
 const readOverlayCss = async () => {
   const stylesheets = await Promise.all(
     STYLESHEET_PATHS.map(async (path) => {
@@ -118,10 +121,10 @@ export const setOverlayStatus = (message) => {
 const mount = async () => {
   mountGeneration += 1;
   const generation = mountGeneration;
-  window.addEventListener("keydown", handleKeyDown, true);
+  window.addEventListener("keydown", handleTrustedKeyDown, true);
 
   const host = createOverlayHost();
-  const root = host.attachShadow({ mode: "open" });
+  const root = host.attachShadow({ mode: "closed" });
   const style = document.createElement("style");
   style.textContent = await readOverlayCss();
   if (generation !== mountGeneration) return;
@@ -129,7 +132,7 @@ const mount = async () => {
   hostElement = host;
   shadowRoot = root;
   document.documentElement.append(host);
-  promoteOverlayHost(host);
+  promoteOverlayHost({ host, root });
   startEventFirewall(host);
   root.append(style, createStatusBar());
   root.querySelector(".qa-issue-count")?.focus();
@@ -144,7 +147,7 @@ const mount = async () => {
 
 const unmount = () => {
   mountGeneration += 1;
-  window.removeEventListener("keydown", handleKeyDown, true);
+  window.removeEventListener("keydown", handleTrustedKeyDown, true);
   stopPicking();
   endDraft();
   closePanel();

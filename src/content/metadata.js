@@ -1,6 +1,6 @@
+import { buildOpeningTag } from "../lib/element-tag.js";
 import { buildSelector } from "../lib/selector.js";
 
-const MAX_ELEMENT_TAG_LENGTH = 300;
 const MAX_TEXT_LENGTH = 120;
 
 const siblingIndexOf = (element) => {
@@ -31,15 +31,14 @@ const buildDescriptorChain = (element) => {
   return leaf;
 };
 
-const openingTagOf = (element) => {
-  const attributes = Array.from(element.attributes)
-    .map((attribute) => ` ${attribute.name}="${attribute.value}"`)
-    .join("");
-  return `<${element.tagName.toLowerCase()}${attributes}>`.slice(
-    0,
-    MAX_ELEMENT_TAG_LENGTH,
-  );
-};
+const openingTagOf = (element) =>
+  buildOpeningTag({
+    tagName: element.tagName,
+    attributes: Array.from(element.attributes, ({ name, value }) => ({
+      name,
+      value,
+    })),
+  });
 
 const collapsedTextOf = (element) => {
   const text = element.textContent

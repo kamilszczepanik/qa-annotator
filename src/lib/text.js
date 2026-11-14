@@ -10,3 +10,8 @@ export const issueCountLabel = (count) =>
 
 export const areaCountLabel = (count) =>
   count === 1 ? "1 area" : `${count} areas`;
+
+const UNSAFE_CHARACTERS = /[\p{Cc}​-‏‪-‮⁦-⁩]/gu;
+
+export const toSingleLine = (value) =>
+  String(value).replace(UNSAFE_CHARACTERS, " ").replace(/\s+/g, " ").trim();

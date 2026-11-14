@@ -1,3 +1,4 @@
+import { annotationsOnOrigin } from "../lib/page-origin.js";
 import { closeCommentBox } from "./comment-box.js";
 import { endDraft } from "./draft-issue.js";
 import { getOverlayShadowRoot, setOverlayStatus } from "./overlay.js";
@@ -26,7 +27,10 @@ export const renderSessionList = () => {
   if (!shadowRoot) return;
   renderSessionPanel({
     root: shadowRoot,
-    annotations: getSession().annotations,
+    annotations: annotationsOnOrigin({
+      annotations: getSession().annotations,
+      origin: window.location.origin,
+    }),
     error: listError,
     isFinishing,
     onDelete: (id) => void deleteAnnotation(id),

@@ -24,20 +24,20 @@ export const createOverlayHost = () => {
   return host;
 };
 
-const reinsertIntoTopLayer = (host) => {
-  const focused = host.shadowRoot?.activeElement;
+const reinsertIntoTopLayer = ({ host, root }) => {
+  const focused = root?.activeElement;
   host.hidePopover();
   host.showPopover();
-  if (focused?.isConnected && host.shadowRoot?.activeElement !== focused) {
+  if (focused?.isConnected && root?.activeElement !== focused) {
     focused.focus();
   }
 };
 
-export const promoteOverlayHost = (host) => {
+export const promoteOverlayHost = ({ host, root }) => {
   if (!host?.isConnected || typeof host.showPopover !== "function") return;
   try {
     host.setAttribute("popover", "manual");
-    if (host.matches(":popover-open")) reinsertIntoTopLayer(host);
+    if (host.matches(":popover-open")) reinsertIntoTopLayer({ host, root });
     else host.showPopover();
   } catch (error) {
     console.error(

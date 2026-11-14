@@ -1,3 +1,4 @@
+import { whenTrusted } from "../lib/trusted-event.js";
 import {
   createAreaCounter,
   createCardActions,
@@ -150,20 +151,23 @@ export const showCommentBox = ({
   pendingCancel = onCancel;
   const { actions, saveButton, addAreaButton } = createCardActions({
     onCancel: cancel,
-    onAddArea: () => void addArea(),
-    onSave: () => void save(),
+    onAddArea: whenTrusted(() => void addArea()),
+    onSave: whenTrusted(() => void save()),
   });
-  textarea.addEventListener("keydown", (event) => {
-    keepFocus(textarea);
-    if (isAddAreaShortcut(event)) {
+  textarea.addEventListener(
+    "keydown",
+    whenTrusted((event) => {
+      keepFocus(textarea);
+      if (isAddAreaShortcut(event)) {
+        event.preventDefault();
+        void addArea();
+        return;
+      }
+      if (!isSaveShortcut(event)) return;
       event.preventDefault();
-      void addArea();
-      return;
-    }
-    if (!isSaveShortcut(event)) return;
-    event.preventDefault();
-    void save();
-  });
+      void save();
+    }),
+  );
   textarea.addEventListener("input", () => {
     const isEmpty = textarea.value.trim() === "";
     saveButton.disabled = isEmpty;
@@ -178,7 +182,7 @@ export const showCommentBox = ({
     actions,
   );
   shadowRoot.append(commentBox);
-  promoteOverlayHost(getOverlayHost());
+  promoteOverlayHost({ host: getOverlayHost(), root: shadowRoot });
   cardAnchor = rectOfPick(pick);
   clampCard();
   textarea.focus();
