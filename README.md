@@ -138,9 +138,11 @@ done with them.
 A page under test can be hostile. The overlay lives in a closed shadow root,
 ignores synthetic clicks and key presses, and only lists issues recorded on the
 current site. The report keeps an allowlist of element attributes (`id`,
-`class`, `data-testid`, `role`, `aria-label`, `name`, `type`, `href` without its
-query string), caps every value quoted from the page at 200 characters, and
-tells the coding agent that page content is data, not instructions.
+`class`, `data-testid`, `role`, `aria-label`, `name`, `type`, and `href` cut
+down to origin and path, with non-web links dropped), records the page address
+the same way, strips invisible characters, caps every value quoted from the page
+at 200 characters, and tells the coding agent that page content is data, not
+instructions.
 
 ## License
 

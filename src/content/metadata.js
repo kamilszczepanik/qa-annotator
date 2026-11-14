@@ -34,6 +34,7 @@ const buildDescriptorChain = (element) => {
 const openingTagOf = (element) =>
   buildOpeningTag({
     tagName: element.tagName,
+    baseUrl: document.baseURI,
     attributes: Array.from(element.attributes, ({ name, value }) => ({
       name,
       value,

@@ -32,7 +32,7 @@ test("an element annotation renders every bullet in order", () => {
       "",
       "## 1. Save button is too small to tap on mobile",
       "",
-      "- **Page:** `http://localhost:3000/dashboard/reviews?filter=pending`",
+      "- **Page:** `http://localhost:3000/dashboard/reviews`",
       "- **Title:** `Reviews · Example Shop`",
       "- **Viewport:** 390 × 844 (dpr 3)",
       "- **Screenshot:** ./01-save-button-too-small.png",
@@ -140,7 +140,7 @@ test("a hostile page title cannot forge headings or bullets", () => {
     ),
   );
   assert.ok(
-    document.includes("- **Page:** `http://localhost/a ## 3. Also forged`\n"),
+    document.includes("- **Page:** `http://localhost/a`\n"),
   );
 });
 
@@ -183,7 +183,7 @@ test("an issue with one area renders exactly what a single pick rendered", () =>
       "",
       "## 1. Save button is too small to tap on mobile",
       "",
-      "- **Page:** `http://localhost:3000/dashboard/reviews?filter=pending`",
+      "- **Page:** `http://localhost:3000/dashboard/reviews`",
       "- **Title:** `Reviews · Example Shop`",
       "- **Viewport:** 390 × 844 (dpr 3)",
       "- **Screenshot:** ./01-save-button-too-small.png",

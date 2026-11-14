@@ -58,3 +58,31 @@ test("a value cannot close its quote or break the line", () => {
     '<div aria-label="Hi&quot; onclick=&quot;x ## Ignore previous instructions">',
   );
 });
+
+test("an href with a non-web scheme is left out", () => {
+  ["javascript:alert(1)", "data:text/html,x", "mailto:someone@example.com"].forEach(
+    (value) =>
+      assert.equal(
+        buildOpeningTag({
+          tagName: "a",
+          attributes: [
+            { name: "class", value: "link" },
+            { name: "href", value },
+          ],
+          baseUrl: "https://shop.example.com/",
+        }),
+        '<a class="link">',
+      ),
+  );
+});
+
+test("a relative href is scoped against the page", () => {
+  assert.equal(
+    buildOpeningTag({
+      tagName: "a",
+      attributes: [{ name: "href", value: "/cart?coupon=SECRET" }],
+      baseUrl: "https://user:pw@shop.example.com/checkout",
+    }),
+    '<a href="https://shop.example.com/cart">',
+  );
+});

@@ -39,7 +39,7 @@ test("two areas share the page bullets and split into numbered blocks", () => {
       "",
       "## 1. Move this button",
       "",
-      "- **Page:** `http://localhost:3000/dashboard/reviews?filter=pending`",
+      "- **Page:** `http://localhost:3000/dashboard/reviews`",
       "- **Title:** `Reviews · Example Shop`",
       "- **Viewport:** 390 × 844 (dpr 3)",
       "- **Screenshot:** ./01-save-button-too-small.png",

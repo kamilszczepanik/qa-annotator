@@ -11,7 +11,12 @@ export const issueCountLabel = (count) =>
 export const areaCountLabel = (count) =>
   count === 1 ? "1 area" : `${count} areas`;
 
-const UNSAFE_CHARACTERS = /[\p{Cc}​-‏‪-‮⁦-⁩]/gu;
+const LINE_BREAKING_CHARACTERS = /[\p{Cc}\p{Zl}\p{Zp}]/gu;
+const INVISIBLE_CHARACTERS = /[\p{Cf}\p{Co}\p{Cn}]/gu;
 
 export const toSingleLine = (value) =>
-  String(value).replace(UNSAFE_CHARACTERS, " ").replace(/\s+/g, " ").trim();
+  String(value)
+    .replace(LINE_BREAKING_CHARACTERS, " ")
+    .replace(INVISIBLE_CHARACTERS, "")
+    .replace(/\s+/g, " ")
+    .trim();
