@@ -1,0 +1,29 @@
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  color-scheme: dark;
+}
+
+.qa-comment-field {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 8px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #f4f4f5;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  font-size: 13px;
+  resize: none;
+}
+
+.qa-comment-field::placeholder {
+  color: #a1a1aa;
+}

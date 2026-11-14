@@ -1,5 +1,4 @@
-const COMMENT_LABEL = "What is wrong here?";
-const ERROR_LINE_ID = "qa-comment-error";
+export const COMMENT_LABEL = "What is wrong here?";
 const CARD_WIDTH_PX = 280;
 const CARD_GAP_PX = 12;
 
@@ -19,22 +18,12 @@ export const createAreaCounter = (areaNumber) => {
   return counter;
 };
 
-const accessibleLabel = (areaNumber) =>
+export const commentFieldLabel = (areaNumber) =>
   areaNumber > 1 ? `Area ${areaNumber}, ${COMMENT_LABEL}` : COMMENT_LABEL;
-
-export const createCommentInput = (areaNumber) => {
-  const textarea = document.createElement("textarea");
-  textarea.className = "qa-comment-input";
-  textarea.placeholder = COMMENT_LABEL;
-  textarea.setAttribute("aria-label", accessibleLabel(areaNumber));
-  textarea.setAttribute("aria-describedby", ERROR_LINE_ID);
-  return textarea;
-};
 
 export const createErrorLine = () => {
   const errorLine = document.createElement("p");
   errorLine.className = "qa-inline-error";
-  errorLine.id = ERROR_LINE_ID;
   errorLine.setAttribute("role", "alert");
   errorLine.hidden = true;
   return errorLine;

@@ -1,18 +1,25 @@
 import { whenTrusted } from "../lib/trusted-event.js";
 import {
+  COMMENT_LABEL,
+  commentFieldLabel,
   createAreaCounter,
   createCardActions,
-  createCommentInput,
   createErrorLine,
   positionCard,
 } from "./comment-card.js";
+import { createCommentField } from "./comment-field.js";
 import { promoteOverlayHost } from "./overlay-host.js";
-import { getOverlayHost, getOverlayShadowRoot } from "./overlay.js";
+import {
+  finishFromKeyboard,
+  getOverlayHost,
+  getOverlayShadowRoot,
+} from "./overlay.js";
 import { rectOfPick } from "./session-store.js";
 
 const EMPTY_COMMENT_MESSAGE = "Add a comment before saving.";
 
 let commentBox = null;
+let commentField = null;
 let cardAnchor = null;
 let previouslyFocused = null;
 let pendingSave = null;
@@ -32,8 +39,10 @@ const restoreFocus = () => {
 
 export const closeCommentBox = () => {
   if (!commentBox) return false;
+  commentField?.dispose();
   commentBox.remove();
   commentBox = null;
+  commentField = null;
   cardAnchor = null;
   pendingSave = null;
   pendingCancel = null;
@@ -54,18 +63,18 @@ const clampCard = () => {
   positionCard({ card: commentBox, anchor: cardAnchor });
 };
 
-const showBoxError = ({ textarea, errorLine, message }) => {
+const showBoxError = ({ field, errorLine, message }) => {
   errorLine.textContent = message;
   errorLine.hidden = false;
-  textarea.setAttribute("aria-invalid", "true");
+  field.setInvalid(true);
   clampCard();
 };
 
-const clearBoxError = ({ textarea, errorLine }) => {
+const clearBoxError = ({ field, errorLine }) => {
   if (errorLine.hidden) return;
   errorLine.hidden = true;
   errorLine.textContent = "";
-  textarea.removeAttribute("aria-invalid");
+  field.setInvalid(false);
   clampCard();
 };
 
@@ -78,15 +87,15 @@ const failureOf = async ({ onSubmit, comment }) => {
   }
 };
 
-const submitComment = async ({ textarea, errorLine, onSubmit }) => {
-  const comment = textarea.value.trim();
+const submitComment = async ({ field, errorLine, onSubmit }) => {
+  const comment = field.value().trim();
   if (!comment) {
-    showBoxError({ textarea, errorLine, message: EMPTY_COMMENT_MESSAGE });
+    showBoxError({ field, errorLine, message: EMPTY_COMMENT_MESSAGE });
     return;
   }
   const failure = await failureOf({ onSubmit, comment });
   if (failure) {
-    showBoxError({ textarea, errorLine, message: failure });
+    showBoxError({ field, errorLine, message: failure });
     return;
   }
   closeCommentBox();
@@ -94,7 +103,7 @@ const submitComment = async ({ textarea, errorLine, onSubmit }) => {
 
 export const commitCommentBox = async () => {
   if (!commentBox) return true;
-  const typed = commentBox.querySelector(".qa-comment-input").value.trim();
+  const typed = commentField.value().trim();
   if (!typed) {
     pendingCancel();
     return closeCommentBox();
@@ -102,23 +111,6 @@ export const commitCommentBox = async () => {
   await pendingSave();
   return commentBox === null;
 };
-
-const keepFocus = (textarea) => {
-  if (getOverlayShadowRoot()?.activeElement === textarea) return;
-  textarea.focus();
-};
-
-export const isSaveShortcut = (event) =>
-  event.key === "Enter" &&
-  !event.shiftKey &&
-  !event.altKey &&
-  Boolean(event.metaKey || event.ctrlKey);
-
-export const isAddAreaShortcut = (event) =>
-  event.key === "Enter" &&
-  event.altKey &&
-  !event.shiftKey &&
-  Boolean(event.metaKey || event.ctrlKey);
 
 export const showCommentBox = ({
   pick,
@@ -137,15 +129,21 @@ export const showCommentBox = ({
   commentBox = document.createElement("div");
   commentBox.className = "qa-comment-box";
 
-  const textarea = createCommentInput(areaNumber);
   const errorLine = createErrorLine();
+  let field = null;
 
-  const save = () => submitComment({ textarea, errorLine, onSubmit: onSave });
+  const save = () => submitComment({ field, errorLine, onSubmit: onSave });
   const addArea = () =>
-    submitComment({ textarea, errorLine, onSubmit: onAddArea });
+    submitComment({ field, errorLine, onSubmit: onAddArea });
   const cancel = () => {
     onCancel();
     closeCommentBox();
+  };
+  const shortcutHandlers = {
+    save: () => void save(),
+    addArea: () => void addArea(),
+    cancel: () => cancelCommentBox(),
+    finish: () => void finishFromKeyboard(),
   };
   pendingSave = save;
   pendingCancel = onCancel;
@@ -154,30 +152,22 @@ export const showCommentBox = ({
     onAddArea: whenTrusted(() => void addArea()),
     onSave: whenTrusted(() => void save()),
   });
-  textarea.addEventListener(
-    "keydown",
-    whenTrusted((event) => {
-      keepFocus(textarea);
-      if (isAddAreaShortcut(event)) {
-        event.preventDefault();
-        void addArea();
-        return;
-      }
-      if (!isSaveShortcut(event)) return;
-      event.preventDefault();
-      void save();
-    }),
-  );
-  textarea.addEventListener("input", () => {
-    const isEmpty = textarea.value.trim() === "";
-    saveButton.disabled = isEmpty;
-    addAreaButton.disabled = isEmpty;
-    clearBoxError({ textarea, errorLine });
+  field = createCommentField({
+    label: commentFieldLabel(areaNumber),
+    placeholder: COMMENT_LABEL,
+    onInput: (value) => {
+      const isEmpty = value.trim() === "";
+      saveButton.disabled = isEmpty;
+      addAreaButton.disabled = isEmpty;
+      clearBoxError({ field, errorLine });
+    },
+    onShortcut: (shortcut) => shortcutHandlers[shortcut]?.(),
   });
+  commentField = field;
 
   commentBox.append(
     createAreaCounter(areaNumber),
-    textarea,
+    field.element,
     errorLine,
     actions,
   );
@@ -185,5 +175,5 @@ export const showCommentBox = ({
   promoteOverlayHost({ host: getOverlayHost(), root: shadowRoot });
   cardAnchor = rectOfPick(pick);
   clampCard();
-  textarea.focus();
+  field.focus();
 };

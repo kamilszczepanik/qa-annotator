@@ -1,9 +1,9 @@
+import { isFinishShortcut, isSaveShortcut } from "../lib/comment-shortcuts.js";
 import { whenTrusted } from "../lib/trusted-event.js";
 import {
   cancelCommentBox,
   commitCommentBox,
   isCommentBoxOpen,
-  isSaveShortcut,
 } from "./comment-box.js";
 import { draftAreaCount, endDraft } from "./draft-issue.js";
 import {
@@ -32,10 +32,7 @@ export const setOverlayPointerEvents = (value) => {
   hostElement?.style.setProperty("pointer-events", value, "important");
 };
 
-const isFinishShortcut = (event) =>
-  event.key === "Enter" && event.shiftKey && (event.metaKey || event.ctrlKey);
-
-const finishFromKeyboard = async () => {
+export const finishFromKeyboard = async () => {
   if (await commitCommentBox()) await finishSession();
 };
 

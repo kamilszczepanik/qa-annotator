@@ -56,7 +56,6 @@ newer).
 | `scripting` | Inject the overlay into that tab when you turn QA mode on. |
 | `downloads` | Save `report.md` and the screenshots into `~/Downloads`. |
 | `storage` | Keep the session in progress if the page reloads or you navigate. |
-| Content script on all pages | A tiny keyboard shield that keeps the page's own shortcuts from stealing what you type into the comment box. It does nothing until QA mode is on. |
 
 No network requests, no analytics, no remote code. Everything stays on your
 machine.
@@ -97,13 +96,17 @@ there and the service worker console says why.
 
 Page events stop at the overlay host. A page handler listening on `document` or
 `window` in the bubble phase never sees them. A page handler in the capture
-phase still runs, because the event passes it on the way down. That is why the
-comment box re-asserts its own focus.
+phase still runs, because the event passes it on the way down.
+
+The comment field itself is a small extension page in a frame. What you type
+there goes to that frame only: the page under test never sees the keystrokes,
+and neither do other extensions' keyboard shortcuts (Vimium and the like), so
+`t`, `o` or `i` are just letters while you type a comment.
 
 While QA mode is on, the page's own keyboard handlers are suppressed. Native
 controls still work, but any JavaScript-driven keyboard widget on the page, a
-custom menu or a combobox, is inert until QA mode is off. That is the price of
-the comment box keeping its keystrokes.
+custom menu or a combobox, is inert until QA mode is off, so a page shortcut
+cannot fire while you work in the overlay.
 
 Scrolling still works, because wheel and scroll are left alone.
 
@@ -116,10 +119,6 @@ Known gap: a page's own native modal, opened with `showModal()`, cannot be
 annotated while it is open. The overlay is visible on top of it, but the browser
 will not let anything outside the modal be clicked or focused. Close the modal
 first.
-
-Known gap: a page listener in the capture phase can still observe the
-characters typed into the comment box, even though it cannot have them. Do not
-type anything secret into an annotation on a page you do not trust.
 
 ### After a code change
 
@@ -135,7 +134,8 @@ machine, unencrypted, in `~/Downloads`. Nothing is transmitted anywhere: no
 server, no analytics, no sync. Clear old `qa-*` session folders when you are
 done with them.
 
-A page under test can be hostile. The overlay lives in a closed shadow root,
+A page under test can be hostile. The overlay lives in a closed shadow root and
+the comment field in an extension frame the page cannot read. The overlay
 ignores synthetic clicks and key presses, and only lists issues recorded on the
 current site. The report keeps an allowlist of element attributes (`id`,
 `class`, `data-testid`, `role`, `aria-label`, `name`, `type`, and `href` cut
