@@ -146,9 +146,17 @@ const cropThumbnail = async ({ frameDataUrl, rect }) => {
   return canvas.toDataURL("image/jpeg", THUMBNAIL_QUALITY);
 };
 
+const CAPTURING_ATTRIBUTE = "data-capturing";
+
 export const captureThumbnail = (rect) =>
   queued(async () => {
-    await afterTwoFrames();
-    const { dataUrl } = await sendToWorker({ type: "CAPTURE_VISIBLE_TAB" });
-    return cropThumbnail({ frameDataUrl: dataUrl, rect });
+    const host = getOverlayHost();
+    host?.setAttribute(CAPTURING_ATTRIBUTE, "");
+    try {
+      await afterTwoFrames();
+      const { dataUrl } = await sendToWorker({ type: "CAPTURE_VISIBLE_TAB" });
+      return await cropThumbnail({ frameDataUrl: dataUrl, rect });
+    } finally {
+      host?.removeAttribute(CAPTURING_ATTRIBUTE);
+    }
   });

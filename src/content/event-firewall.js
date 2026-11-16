@@ -1,3 +1,5 @@
+import { isExtensionAlive } from "../lib/extension-context.js";
+
 const HOST_BUBBLE_EVENTS = [
   "pointerdown",
   "pointerup",
@@ -67,6 +69,10 @@ const stopWhenRelatedTargetIsHost = (event) => {
 };
 
 const stopWhenTargetIsOutsideHost = (event) => {
+  if (!isExtensionAlive()) {
+    stopEventFirewall();
+    return;
+  }
   if (event.target === firewallHost) return;
   event.stopPropagation();
   if (isEditable(document.activeElement)) event.preventDefault();

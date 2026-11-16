@@ -6,9 +6,9 @@ import {
 } from "../lib/manifest-drift.js";
 
 export const STALE_EXTENSION_MESSAGE =
-  "Reload QA Annotator in chrome://extensions, then this page.";
+  "QA Annotator was updated. Open chrome://extensions, click the reload icon on QA Annotator, then reload this page.";
 export const ORPHANED_PAGE_MESSAGE =
-  "QA Annotator was reloaded. Reload this page.";
+  "QA Annotator was reloaded. Reload this page to keep annotating.";
 
 export const whileExtensionAlive =
   ({ handler, onOrphaned }) =>

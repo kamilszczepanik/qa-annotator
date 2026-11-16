@@ -1,6 +1,7 @@
 import { editedAreas } from "../lib/issue-edit.js";
 import { settleIssue } from "./issue-capture.js";
-import { pushPanelState, sendToPanel } from "./panel-link.js";
+import { screenshotsSettled } from "./issue-commit.js";
+import { pushState } from "./frame-link.js";
 import { exportReport } from "./session-export.js";
 import {
   isFinishing,
@@ -12,9 +13,12 @@ import {
 import {
   clearSession,
   getSession,
+  isOwnWrite,
   persistSession,
   readStoredSession,
   removeAnnotation,
+  replaceSession,
+  SESSION_STORAGE_KEY,
   updateAnnotation,
 } from "./session-store.js";
 
@@ -29,7 +33,7 @@ let savedTo = null;
 const persistChange = async () => {
   try {
     await persistSession();
-    pushPanelState();
+    pushState();
   } catch (error) {
     reportStorageFailure("writing the session to storage failed.", error);
   }
@@ -38,7 +42,7 @@ const persistChange = async () => {
 export const loadSession = async () => {
   try {
     await readStoredSession();
-    pushPanelState();
+    pushState();
   } catch (error) {
     reportStorageFailure("reading the stored session failed.", error);
   }
@@ -72,7 +76,7 @@ const writeReport = async (sessionId) => {
     console.error("QA Annotator: writing the report failed.", error);
     setStatus(null);
     setError(`Could not write the report: ${error?.message ?? String(error)}`);
-    return;
+    return null;
   }
 
   try {
@@ -80,35 +84,54 @@ const writeReport = async (sessionId) => {
   } catch (error) {
     setStatus(null);
     reportStorageFailure("clearing the stored session failed.", error);
-    return;
+    return null;
   }
 
-  savedTo = `Saved to ~/Downloads/${sessionId}.`;
+  savedTo = `Report saved to ~/Downloads/${sessionId}.`;
   setError(null);
   setStatus(savedTo);
-  sendToPanel({ type: "report", prompt });
+  return prompt;
 };
 
 export const finishSession = async ({ comment = "" } = {}) => {
-  if (isFinishing()) return;
-  if (!(await settleIssue(comment))) return;
+  if (isFinishing()) return null;
+  if (!(await settleIssue(comment))) return null;
+  await screenshotsSettled();
   const { annotations, sessionId } = getSession();
   if (annotations.length === 0) {
     setStatus(NOTHING_TO_EXPORT_MESSAGE);
-    return;
+    return null;
   }
 
   setFinishing(true);
   setStatus(WRITING_REPORT_STATUS);
   try {
-    await writeReport(sessionId);
+    return await writeReport(sessionId);
   } finally {
     setFinishing(false);
   }
 };
 
 export const noteCopied = () => {
-  if (savedTo) setStatus(`${savedTo} Prompt copied to the clipboard.`);
+  if (savedTo) {
+    setStatus(`${savedTo} The prompt for your coding agent is on the clipboard.`);
+  }
+};
+
+const syncFromOtherTab = (changes, areaName) => {
+  const change = changes[SESSION_STORAGE_KEY];
+  if (areaName !== "local" || !change || isOwnWrite(change.newValue)) return;
+  replaceSession(change.newValue);
+  pushState();
+};
+
+export const startSessionSync = () =>
+  chrome.storage.onChanged.addListener(syncFromOtherTab);
+
+export const stopSessionSync = () => {
+  if (globalThis.chrome?.storage?.onChanged) {
+    chrome.storage.onChanged.removeListener(syncFromOtherTab);
+  }
 };
 
 export const copyPromptFromPage = async (prompt) => {

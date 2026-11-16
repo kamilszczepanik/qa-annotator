@@ -44,7 +44,7 @@ test("keys Chrome adds to the loaded manifest are not drift", () => {
 test("a permission added on disk is drift", () => {
   assert.equal(
     manifestDrifted({
-      onDisk: manifest({ permissions: ["activeTab", "scripting", "sidePanel"] }),
+      onDisk: manifest({ permissions: ["activeTab", "scripting", "tabs"] }),
       loaded: manifest(),
     }),
     true,

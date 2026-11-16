@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>QA Annotator issues</title>
+    <link rel="stylesheet" href="base.css" />
+    <link rel="stylesheet" href="list.css" />
+    <script type="module" src="list.js"></script>
+  </head>
+  <body>
+    <main class="sheet" data-sheet>
+      <header class="sheet-header">
+        <h1 class="sheet-title">
+          Issues on this site <span class="count" data-count></span>
+        </h1>
+        <button
+          class="button button--quiet button--icon"
+          type="button"
+          aria-label="Hide the issue list"
+          data-close
+        >
+          ✕
+        </button>
+      </header>
+      <p class="empty" data-empty>
+        No issues yet. Click an element on the page or drag a box around an
+        area.
+      </p>
+      <ol class="issue-list" data-issue-list></ol>
+      <p class="note" data-elsewhere hidden></p>
+      <p class="error" role="alert" data-error hidden></p>
+      <button
+        class="button button--primary button--wide"
+        type="button"
+        data-finish
+      >
+        Finish and save the report <kbd data-key="finish"></kbd>
+      </button>
+    </main>
+  </body>
+</html>

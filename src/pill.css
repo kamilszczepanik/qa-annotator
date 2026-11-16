@@ -1,0 +1,81 @@
+.qa-dock {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.qa-frame--list {
+  position: relative;
+  width: min(400px, calc(100vw - 32px));
+  height: 0;
+}
+
+.qa-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  margin: 0;
+  padding: 0 14px 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(20, 20, 24, 0.94);
+  color: #f4f4f6;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif;
+  font-size: 14px;
+  font-weight: 560;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow:
+    0 12px 32px rgba(15, 15, 20, 0.3),
+    0 2px 6px rgba(15, 15, 20, 0.2);
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.qa-pill:hover {
+  background: rgba(36, 36, 42, 0.96);
+}
+
+.qa-pill:focus-visible {
+  outline: 2px solid #ff2d55;
+  outline-offset: 2px;
+}
+
+.qa-pill-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ff2d55;
+  box-shadow: 0 0 0 3px rgba(255, 45, 85, 0.25);
+}
+
+.qa-pill-separator {
+  color: #8b8b96;
+}
+
+.qa-pill-count {
+  min-width: 4.6em;
+  font-variant-numeric: tabular-nums;
+}
+
+.qa-pill-chevron {
+  width: 7px;
+  height: 7px;
+  margin: 0 2px 0 4px;
+  border-top: 2px solid #a3a3ae;
+  border-left: 2px solid #a3a3ae;
+  transform: translateY(2px) rotate(45deg);
+}
+
+.qa-pill[aria-expanded="true"] .qa-pill-chevron {
+  transform: translateY(-2px) rotate(225deg);
+}

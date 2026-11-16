@@ -1,6 +1,6 @@
 import { offscreenAreaNumbers } from "../lib/geometry.js";
 import { hasWarnedOffscreen, markOffscreenWarned } from "./draft-issue.js";
-import { pushPanelState } from "./panel-link.js";
+import { pushState } from "./frame-link.js";
 import { captureAnnotationScreenshot } from "./session-export.js";
 import {
   reportStorageFailure,
@@ -10,6 +10,10 @@ import {
 import { addAnnotation, persistSession } from "./session-store.js";
 
 const SCREENSHOT_FAILURE_MESSAGE = "Screenshot failed, issue saved without it.";
+
+let screenshotsInFlight = Promise.resolve();
+
+export const screenshotsSettled = () => screenshotsInFlight;
 
 const offscreenWarning = (numbers) =>
   numbers.length === 1
@@ -26,7 +30,7 @@ const attachScreenshot = async ({ annotation, rects }) => {
   }
   try {
     await persistSession();
-    pushPanelState();
+    pushState();
   } catch (error) {
     reportStorageFailure("writing the session to storage failed.", error);
   }
@@ -54,7 +58,9 @@ export const commitIssue = async ({ areas, saved, onCommitted }) => {
     return { failure: STORAGE_FAILURE_MESSAGE, annotation };
   }
   onCommitted();
-  await attachScreenshot({ annotation, rects });
+  const attached = attachScreenshot({ annotation, rects });
+  screenshotsInFlight = screenshotsInFlight.then(() => attached);
+  await attached;
   return { annotation };
 };
 

@@ -17,3 +17,10 @@ export const toSingleLine = (value) =>
     .replace(INVISIBLE_CHARACTERS, "")
     .replace(/\s+/g, " ")
     .trim();
+
+export const otherSitesNote = (count) => {
+  if (count <= 0) return "";
+  return count === 1
+    ? "1 more issue in this session is on another site."
+    : `${count} more issues in this session are on other sites.`;
+};

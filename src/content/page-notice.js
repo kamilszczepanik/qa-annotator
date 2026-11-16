@@ -1,20 +1,18 @@
 import { getOverlayShadowRoot } from "./overlay.js";
 
-const TIP_VISIBLE_MS = 4000;
-
-let tipTimer = 0;
+let noticeTimer = 0;
 
 export const setNotice = (message) => {
-  clearTimeout(tipTimer);
+  clearTimeout(noticeTimer);
   const notice = getOverlayShadowRoot()?.querySelector(".qa-notice");
   if (!notice) return;
   notice.textContent = message ?? "";
   notice.hidden = !message;
 };
 
-export const flashTip = (message) => {
+export const flashNotice = (message, visibleMs) => {
   setNotice(message);
-  tipTimer = setTimeout(() => setNotice(null), TIP_VISIBLE_MS);
+  noticeTimer = setTimeout(() => setNotice(null), visibleMs);
 };
 
 export const createNotice = () => {

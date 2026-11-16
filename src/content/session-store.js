@@ -1,7 +1,7 @@
 import { formatSessionLabel, sessionIdFromLabel } from "../lib/report.js";
 import { randomId } from "../lib/random-id.js";
 
-const SESSION_STORAGE_KEY = "qaSession";
+export const SESSION_STORAGE_KEY = "qaSession";
 
 const emptySession = () => ({
   sessionId: null,
@@ -12,6 +12,9 @@ const emptySession = () => ({
 
 let session = emptySession();
 const removedIds = new Set();
+const writerId = randomId();
+
+export const isOwnWrite = (stored) => stored?.writer === writerId;
 
 const isPlainObject = (value) =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -75,6 +78,18 @@ const adoptStored = (stored) => {
   };
 };
 
+export const replaceSession = (stored) => {
+  removedIds.clear();
+  session = isStoredSession(stored)
+    ? {
+        sessionId: stored.sessionId ?? null,
+        startedAt: stored.startedAt ?? null,
+        startedAtLabel: stored.startedAtLabel ?? null,
+        annotations: usableAnnotations(stored.annotations),
+      }
+    : emptySession();
+};
+
 const readStored = async () => {
   const stored = await chrome.storage.local.get(SESSION_STORAGE_KEY);
   return stored[SESSION_STORAGE_KEY];
@@ -86,7 +101,9 @@ export const readStoredSession = async () => {
 
 export const persistSession = async () => {
   adoptStored(await readStored());
-  await chrome.storage.local.set({ [SESSION_STORAGE_KEY]: session });
+  await chrome.storage.local.set({
+    [SESSION_STORAGE_KEY]: { ...session, writer: writerId },
+  });
 };
 
 export const clearSession = async () => {

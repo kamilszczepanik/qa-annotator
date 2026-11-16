@@ -1,4 +1,4 @@
-import { pushPanelState } from "./panel-link.js";
+import { pushState } from "./frame-link.js";
 
 export const STORAGE_FAILURE_MESSAGE =
   "Could not save to extension storage. The issue is still here, try again.";
@@ -9,12 +9,12 @@ let finishing = false;
 
 export const setStatus = (message) => {
   status = message ?? null;
-  pushPanelState();
+  pushState();
 };
 
 export const setError = (message) => {
   error = message ?? null;
-  pushPanelState();
+  pushState();
 };
 
 export const reportStorageFailure = (message, cause) => {
@@ -26,7 +26,7 @@ export const isFinishing = () => finishing;
 
 export const setFinishing = (value) => {
   finishing = value;
-  pushPanelState();
+  pushState();
 };
 
 export const statusSnapshot = () => ({ status, error, isFinishing: finishing });

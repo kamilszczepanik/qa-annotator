@@ -105,3 +105,40 @@
 [hidden] {
   display: none !important;
 }
+
+:host([data-capturing]) .qa-frame,
+:host([data-capturing]) .qa-dock,
+:host([data-capturing]) .qa-highlight,
+:host([data-capturing]) .qa-notice {
+  opacity: 0 !important;
+}
+
+.qa-frame {
+  position: absolute;
+  z-index: 4;
+  display: block;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color-scheme: light dark;
+  box-shadow:
+    0 24px 60px rgba(15, 15, 20, 0.28),
+    0 4px 14px rgba(15, 15, 20, 0.16);
+  pointer-events: auto;
+}
+
+.qa-frame--card {
+  top: 0;
+  left: 0;
+  width: 440px;
+  height: 0;
+}
+
+.qa-frame--parked {
+  visibility: hidden;
+  left: -10000px !important;
+  top: 0 !important;
+}

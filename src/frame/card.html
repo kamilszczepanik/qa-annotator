@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>QA Annotator comment</title>
+    <link rel="stylesheet" href="base.css" />
+    <link rel="stylesheet" href="card.css" />
+    <script type="module" src="card.js"></script>
+  </head>
+  <body>
+    <main class="card" data-card tabindex="-1">
+      <header class="card-header">
+        <p class="card-title">
+          <span class="card-dot" aria-hidden="true"></span>
+          <span data-title>New issue</span>
+        </p>
+        <p class="card-target" data-target></p>
+      </header>
+      <ol class="areas" data-areas hidden></ol>
+      <p class="hint" data-hint hidden></p>
+      <div class="composer" data-composer>
+        <label class="visually-hidden" for="comment" data-label>
+          What is wrong here?
+        </label>
+        <textarea
+          class="comment-field"
+          id="comment"
+          rows="3"
+          spellcheck="true"
+        ></textarea>
+      </div>
+      <p class="error" role="alert" data-error hidden></p>
+      <footer class="card-actions">
+        <button class="button button--quiet" type="button" data-cancel>
+          Cancel <kbd data-key="cancel"></kbd>
+        </button>
+        <span class="card-actions-main">
+          <button class="button" type="button" data-add-area>
+            Add area <kbd data-key="addArea"></kbd>
+          </button>
+          <button class="button button--primary" type="button" data-save>
+            Save <kbd data-key="save"></kbd>
+          </button>
+        </span>
+      </footer>
+      <p class="card-foot">
+        <kbd data-key="finish"></kbd> saves and finishes the session
+      </p>
+    </main>
+  </body>
+</html>

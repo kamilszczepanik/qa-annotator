@@ -1,33 +1,23 @@
-import {
-  commentShortcutOf,
-  isTypedCharacter,
-} from "../lib/comment-shortcuts.js";
+import { isExtensionAlive } from "../lib/extension-context.js";
 import { whenTrusted } from "../lib/trusted-event.js";
 import { startEventFirewall, stopEventFirewall } from "./event-firewall.js";
-import {
-  cancelIssue,
-  hasIssueInProgress,
-  resetIssue,
-  startIssue,
-} from "./issue-capture.js";
+import { resetIssue, startIssue } from "./issue-capture.js";
 import {
   createOverlayHost,
   OVERLAY_HOST_ID,
   promoteOverlayHost,
   readOverlayCss,
 } from "./overlay-host.js";
-import { panelSnapshot, runPanelCommand } from "./panel-commands.js";
+import { handlePageKey } from "./page-keys.js";
+import { createNotice, setNotice } from "./page-notice.js";
+import { startPicking, stopPicking } from "./picker.js";
 import {
-  closePanelLink,
-  isPanelLinked,
-  openPanelLink,
-  sendToPanel,
-} from "./panel-link.js";
-import { createNotice, flashTip, setNotice } from "./page-notice.js";
-import { cancelDrag, startPicking, stopPicking } from "./picker.js";
-import { loadSession } from "./session-actions.js";
+  loadSession,
+  startSessionSync,
+  stopSessionSync,
+} from "./session-actions.js";
 import { resetStatus } from "./session-status.js";
-import { isExtensionAlive } from "../lib/extension-context.js";
+import { mountSessionUi, unmountSessionUi } from "./session-ui.js";
 import {
   isLoadedExtensionStale,
   ORPHANED_PAGE_MESSAGE,
@@ -35,16 +25,13 @@ import {
   whileExtensionAlive,
 } from "./stale-extension.js";
 
-const PANEL_WAIT_MS = 3000;
-const TYPE_IN_PANEL_MESSAGE =
-  "Click the comment box in the side panel, then type.";
-const PANEL_CLOSED_MESSAGE =
-  "The QA Annotator side panel is closed. Click the toolbar icon to open it.";
-
 let isActive = false;
 let shadowRoot = null;
 let hostElement = null;
 let mountGeneration = 0;
+let orphanWatch = 0;
+
+const ORPHAN_CHECK_MS = 1000;
 
 export const getOverlayHost = () => hostElement;
 
@@ -55,52 +42,25 @@ export const setOverlayPointerEvents = (value) => {
 };
 
 const showOrphanedPage = () => {
+  clearInterval(orphanWatch);
   stopPicking();
   resetIssue();
+  unmountSessionUi();
+  stopEventFirewall();
   setNotice(ORPHANED_PAGE_MESSAGE);
 };
 
 const handleKeyDown = (event) => {
   if (isActive && !hostElement?.isConnected) {
-    void turnOff();
+    turnOff();
     return;
   }
-  const shortcut = commentShortcutOf(event);
-  if (!shortcut) {
-    if (isTypedCharacter(event) && hasIssueInProgress()) {
-      flashTip(TYPE_IN_PANEL_MESSAGE);
-    }
-    return;
-  }
-  event.preventDefault();
-  event.stopPropagation();
-  if (shortcut === "cancel") {
-    if (cancelDrag() || cancelIssue()) return;
-    void turnOff();
-    return;
-  }
-  if (isPanelLinked()) sendToPanel({ type: "shortcut", shortcut });
-  else setNotice(PANEL_CLOSED_MESSAGE);
+  handlePageKey({ event, turnOff });
 };
 
 const handleTrustedKeyDown = whenTrusted(
   whileExtensionAlive({ handler: handleKeyDown, onOrphaned: showOrphanedPage }),
 );
-
-const handlePanelClosed = () => {
-  if (!isExtensionAlive()) {
-    showOrphanedPage();
-    return;
-  }
-  if (isActive) void turnOff();
-};
-
-const remindWhenPanelStaysClosed = (generation) => {
-  setTimeout(() => {
-    if (generation !== mountGeneration || !isActive) return;
-    if (!isPanelLinked()) setNotice(PANEL_CLOSED_MESSAGE);
-  }, PANEL_WAIT_MS);
-};
 
 const mount = async () => {
   mountGeneration += 1;
@@ -130,25 +90,25 @@ const mount = async () => {
 
   await loadSession();
   if (generation !== mountGeneration) return;
-  openPanelLink({
-    snapshot: panelSnapshot,
-    onCommand: (command) => void runPanelCommand(command),
-    onLinked: () => setNotice(null),
-    onUnlinked: handlePanelClosed,
-  });
+  startSessionSync();
   startPicking({
     onPicked: whileExtensionAlive({
       handler: startIssue,
       onOrphaned: showOrphanedPage,
     }),
   });
-  remindWhenPanelStaysClosed(generation);
+  mountSessionUi({ root, orphaned: showOrphanedPage });
+  orphanWatch = setInterval(() => {
+    if (!isExtensionAlive()) showOrphanedPage();
+  }, ORPHAN_CHECK_MS);
 };
 
 const unmount = () => {
   mountGeneration += 1;
+  clearInterval(orphanWatch);
   window.removeEventListener("keydown", handleTrustedKeyDown, true);
-  closePanelLink();
+  stopSessionSync();
+  unmountSessionUi();
   stopPicking();
   resetIssue();
   resetStatus();
@@ -169,21 +129,16 @@ const turnOn = async () => {
   }
 };
 
-const turnOff = async () => {
+const turnOff = () => {
   isActive = false;
   unmount();
-  if (!isExtensionAlive()) return;
-  try {
-    await chrome.runtime.sendMessage({ type: "QA_MODE_OFF" });
-  } catch (error) {
-    console.error("QA Annotator: closing the side panel failed.", error);
-  }
 };
 
 export const toggleQaMode = async () => {
-  if (!isActive) {
-    await turnOn();
+  if (isActive && hostElement?.isConnected && isExtensionAlive()) {
+    turnOff();
     return;
   }
-  if (isPanelLinked() || !hostElement?.isConnected) await turnOff();
+  if (isActive) unmount();
+  await turnOn();
 };
