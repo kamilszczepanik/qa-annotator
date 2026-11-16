@@ -9,15 +9,17 @@ Annotator replaces that with a click. You get a folder with one markdown report
 and a marked screenshot per issue, plus a prompt on your clipboard that points
 the agent at it.
 
-![QA Annotator: the picked button is marked on the page, and the side panel shows its thumbnail and a large comment box](examples/side-panel.png)
+![QA Annotator: the picked promo field is marked on the page, and the comment card next to it shows area 1 as a thumbnail and a focused comment box](examples/comment-card.png)
 
 ## How it works
 
 1. Press `Cmd+Shift+U` (`Ctrl+Shift+U` on Windows and Linux) on any page, or
-   click the toolbar icon. The QA Annotator side panel opens next to the page.
-2. Click the element that is wrong, or drag a box around it. It gets a numbered
-   red frame on the page and a thumbnail in the panel. Click the comment box in
-   the panel, type what is wrong and press `Cmd+Enter`. Repeat for every issue.
+   click the toolbar icon. A pill in the bottom right corner says
+   `QA mode · 0 issues`.
+2. Click the element that is wrong, or drag a box around an area. It gets a red
+   frame, and a comment card opens right next to it with the cursor already in
+   the comment box. Type what is wrong and press `Cmd+Enter`. The pill counts
+   the issue. Repeat for every issue.
 3. Press `Cmd+Shift+Enter` to finish. A folder `qa-<date>-<time>` lands in
    `~/Downloads`, and a prompt like this is on your clipboard:
 
@@ -54,7 +56,6 @@ newer).
 | Permission | Why |
 | --- | --- |
 | `activeTab` | Screenshot the tab you are annotating, only after you press the shortcut or click the icon. |
-| `sidePanel` | Show the comment box and the session's issues in Chrome's side panel. |
 | `scripting` | Inject the overlay into that tab when you turn QA mode on. |
 | `downloads` | Save `report.md` and the screenshots into `~/Downloads`. |
 | `storage` | Keep the session in progress if the page reloads or you navigate. |
@@ -66,14 +67,15 @@ machine.
 
 ### Shortcuts in detail
 
-`Cmd+Shift+U` (`Ctrl+Shift+U` outside macOS) toggles QA mode on the active tab
-and opens or closes the side panel. The toolbar icon does the same thing.
-Closing the side panel turns QA mode off; the issues you saved stay in the
-session.
+`Cmd+Shift+U` (`Ctrl+Shift+U` outside macOS) toggles QA mode on the active tab.
+The toolbar icon does the same thing.
 
-The side panel holds everything you type: the comment for the issue you are
-writing, and the list of issues saved on this site, each with Edit and Delete.
-Requires Chrome 116 or newer.
+While QA mode is on, the pill in the bottom right corner shows how many issues
+the session holds. Click it to open the list of issues saved on this site, each
+with Edit and Delete, and a button that finishes the session. The session
+carries over between tabs and page reloads.
+
+![The issue list opened from the pill, with Edit and Delete on every issue and the Finish button](examples/issue-list.png)
 
 | Keys | What it does |
 | --- | --- |
@@ -82,15 +84,16 @@ Requires Chrome 116 or newer.
 | `Cmd+Shift+Enter` | Save whatever is typed and finish the session. |
 | `Escape` | Cancel the issue in progress. With nothing in progress, turn QA mode off. |
 
-All four work in the side panel and on the page (`Ctrl` instead of `Cmd`
-outside macOS).
+All four work in the comment card and on the page (`Ctrl` instead of `Cmd`
+outside macOS). The card lists them on its buttons.
 
 Picked the wrong element? Click the right one: it replaces the pick and keeps
 what you typed.
 
 One issue can highlight more than one area, which is what a move needs: the
 thing to move and the place it goes. `Cmd+Option+Enter` banks the comment as
-one area and hands the picker back, so you can pick the next one. `Cmd+Enter`
+one area and hands the picker back, so you can pick the next one. The card
+then shows a thumbnail of every area you already have. `Cmd+Enter`
 finishes the whole issue and takes one screenshot showing every area with its
 number. The numbers match the `Area 1` and `Area 2` blocks in the report.
 
@@ -114,13 +117,12 @@ Page events stop at the overlay host. A page handler listening on `document` or
 `window` in the bubble phase never sees them. A page handler in the capture
 phase still runs, because the event passes it on the way down.
 
-You type comments in Chrome's side panel, which is an extension page outside
-the tab. The page under test never sees those keystrokes, and neither do other
-extensions' keyboard shortcuts (Vimium and the like), so `t`, `o` or `i` are
-just letters there. The page's own security policy does not apply to the panel
-either. Clicking an element on the page gives the keyboard to the page, and
-Chrome does not let an extension take it back, so click the comment box before
-you type. Type on the page by mistake and it says so.
+The comment card is a `chrome-extension://` frame inside the overlay. The page
+under test cannot read it, and other extensions' keyboard shortcuts (Vimium and
+the like) do not run inside it, so `t`, `o` or `i` are just letters there. The
+cursor is in the comment box as soon as the card opens, so you can type right
+away. If you click the page while a card is open, the next letter you type puts
+the cursor back in the card.
 
 While QA mode is on, the page's own keyboard handlers are suppressed. Native
 controls still work, but any JavaScript-driven keyboard widget on the page, a
@@ -148,9 +150,11 @@ Two reloads, both needed:
 
 Chrome reads an unpacked extension's scripts from disk but keeps the manifest
 it loaded, so new code can meet an old manifest. QA mode checks for that and
-says "Reload QA Annotator in chrome://extensions, then this page" instead of
-half working. Reloading the extension closes the side panel and turns QA mode
-off in open tabs; press the shortcut again to carry on.
+says "QA Annotator was updated. Open chrome://extensions, click the reload icon
+on QA Annotator, then reload this page" instead of half working. Tabs that had
+QA mode on when you reloaded the extension say "QA Annotator was reloaded.
+Reload this page to keep annotating" and give the page back. The issues you
+saved stay in the session.
 
 ### Privacy
 
@@ -160,7 +164,8 @@ server, no analytics, no sync. Clear old `qa-*` session folders when you are
 done with them.
 
 A page under test can be hostile. The overlay lives in a closed shadow root and
-the comment box in the side panel, which the page cannot reach. The overlay
+the comment card and issue list in extension frames, which the page cannot
+reach. The overlay
 ignores synthetic clicks and key presses, and only lists issues recorded on the
 current site. The report keeps an allowlist of element attributes (`id`,
 `class`, `data-testid`, `role`, `aria-label`, `name`, `type`, and `href` cut
