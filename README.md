@@ -18,10 +18,11 @@ the agent at it.
    `QA mode · 0 issues`.
 2. Click the element that is wrong, or drag a box around an area. It gets a red
    frame, and a comment card opens right next to it with the cursor already in
-   the comment box. Type what is wrong and press `Cmd+Enter`. The pill counts
-   the issue. Repeat for every issue.
-3. Press `Cmd+Shift+Enter` to finish. A folder `qa-<date>-<time>` lands in
-   `~/Downloads`, and a prompt like this is on your clipboard:
+   the comment box. Type what is wrong and press `Cmd+Enter` (`Ctrl+Enter` on
+   Windows and Linux). The pill counts the issue. Repeat for every issue.
+3. Press `Cmd+Shift+Enter` (`Ctrl+Shift+Enter`) to finish. A folder
+   `qa-<date>-<time>` lands in Chrome's download folder (`~/Downloads` unless
+   you changed it), and a prompt like this is on your clipboard:
 
 ```text
 I've been testing manually and found 3 issues I want fixed.
@@ -46,10 +47,39 @@ It is not on the Chrome Web Store yet. Load it from source:
 
 1. Clone this repository.
 2. Open `chrome://extensions` and turn on Developer mode.
-3. Click Load unpacked and pick the cloned folder.
+3. Click Load unpacked and pick the cloned folder (the one with
+   `manifest.json`).
+4. Optional: click the puzzle icon in the toolbar and pin QA Annotator, so the
+   toolbar icon is one click away.
 
-No build step and no dependencies. To run the tests: `npm test` (Node 20 or
-newer).
+Chrome 116 or newer. No build step and no dependencies.
+
+### Check the shortcut
+
+Open `chrome://extensions/shortcuts` and find QA Annotator. Chrome gives it
+`Cmd+Shift+U` (`Ctrl+Shift+U`) only when no other extension already uses that
+combination. If the field is empty, or pressing the shortcut does nothing, set
+any combination you like there. The toolbar icon always works.
+
+### Try it on the demo page
+
+```sh
+python3 -m http.server 8765 --directory examples/demo-page
+```
+
+Open `http://localhost:8765`, press the shortcut, click the checkout button
+and describe what is wrong with it.
+
+### Local files
+
+Chrome keeps extensions off `file://` pages by default. To annotate a file
+opened straight from disk, open `chrome://extensions`, click Details on QA
+Annotator and turn on Allow access to file URLs. A page served from
+`localhost` needs nothing extra.
+
+### Tests
+
+`npm test` (Node 20 or newer).
 
 ## Permissions
 
